@@ -7,6 +7,8 @@ import { loggerMiddleware } from './middleware/logger';
 import { generalLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/auth';
 import keysRoutes from './routes/keys';
+import campaignsRoutes from './routes/campaigns';
+import whatsappRoutes from './routes/whatsapp';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -36,6 +38,12 @@ app.use('/auth', authRoutes);
 
 // Rotas de chaves de API
 app.use('/keys', keysRoutes);
+
+// Rotas de campanhas
+app.use('/campaigns', campaignsRoutes);
+
+// Rotas de WhatsApp
+app.use('/whatsapp', whatsappRoutes);
 
 // Rota de teste de conexão com banco
 app.get('/test-db', async (req: Request, res: Response) => {

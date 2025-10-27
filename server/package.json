@@ -18,24 +18,27 @@
   "author": "Gaia Team",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.10.0",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.13.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "crypto-js": "^4.2.0",
-    "express-rate-limit": "^7.1.5",
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.10.0",
+    "puppeteer": "^24.26.1",
+    "twilio": "^5.10.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@types/express": "^4.17.20",
-    "@types/node": "^20.8.0",
     "@types/bcryptjs": "^2.4.2",
-    "@types/jsonwebtoken": "^9.0.4",
     "@types/crypto-js": "^4.2.2",
-    "typescript": "^5.2.2",
-    "ts-node": "^10.9.1"
+    "@types/express": "^4.17.20",
+    "@types/jsonwebtoken": "^9.0.4",
+    "@types/node": "^20.8.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
   }
 }
-

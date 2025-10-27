@@ -36,14 +36,78 @@
 - [x] Fazer commit na branch blindada
 - [x] Entregar link da branch ao usuário
 
+## Fase 3: Viva (APIs e IA)
+
+### Integração de APIs
+- [ ] Criar branch viva a partir de blindada
+- [ ] Integrar Google Ads API com chaves do banco
+- [ ] Integrar Instagram Graph API com chaves do banco
+- [ ] Integrar TikTok Ads API com chaves do banco
+- [ ] Integrar WhatsApp Business API com chaves do banco
+- [ ] Criar tabela campaigns (id, titulo, publico, orcamento, status, metricas)
+- [ ] Criar tabela campaign_logs (id, campaign_id, acao, timestamp, resultado)
+
+### Painel de Campanhas
+- [ ] Implementar botão "Nova Campanha" no dashboard
+- [ ] Criar formulário: título, público (cidade, idade, interesse), orçamento, imagem, texto
+- [ ] Implementar upload de imagem (Canva ou local)
+- [ ] Implementar botão "Disparar" que publica em todas as plataformas
+- [ ] Disparar no Instagram (post + stories)
+- [ ] Disparar no Google Ads (criar anúncio)
+- [ ] Agendar no TikTok (post automático)
+- [ ] Abrir fluxo no WhatsApp (mensagem automática com botão de compra)
+
+### Relatórios ao Vivo
+- [ ] Criar página de relatórios com métricas em tempo real
+- [ ] Implementar gráficos Tailwind (impressões, cliques, custo)
+- [ ] Sincronizar dados das APIs a cada 5 minutos
+- [ ] Mostrar CPC, CTR, ROAS para cada campanha
+
+### Integração Gemini
+- [ ] Integrar Google Gemini API
+- [ ] Analisar dados de campanhas automaticamente
+- [ ] Pausar campanhas com custo alto
+- [ ] Aumentar orçamento em campanhas que convertem
+- [ ] Otimizar textos e públicos automaticamente
+
+### Voz (Speech-to-Text e Text-to-Speech)
+- [ ] Implementar Web Speech API para speech-to-text
+- [ ] Integrar Eleven Labs para text-to-speech (voz feminina, calma)
+- [ ] Criar comando de voz: "Gaia, mostra CPC"
+- [ ] Responder com áudio natural usando Eleven Labs
+- [ ] Implementar reconhecimento de comandos
+
+### Assistente Virtual WhatsApp
+- [ ] Integrar Twilio para WhatsApp Business
+- [ ] Receber mensagens de voz/texto do usuário
+- [ ] Converter voz em texto (speech-to-text)
+- [ ] Processar com Gemini para gerar resposta
+- [ ] Converter resposta em voz com Eleven Labs
+- [ ] Enviar resposta via WhatsApp (áudio ou texto)
+- [ ] Exemplo: "Oi Davi, ontem você ganhou R$ 200, quer disparar igual?"
+
+### Testes
+- [ ] Criar 10 campanhas de teste
+- [ ] Testar disparo em todas as plataformas
+- [ ] Testar relatórios em tempo real
+- [ ] Testar otimização automática com Gemini
+- [ ] Testar voz (speech-to-text e text-to-speech)
+- [ ] Testar WhatsApp com IA
+- [ ] Validar sincronização offline
+
+### Deploy
+- [ ] Fazer commit na branch viva
+- [ ] Push para GitHub
+- [ ] Entregar link da branch ao usuário
+
 ---
 
 ## Próximas Fases
 
-- [ ] Fase 3: Integração com APIs (Google Ads, Instagram, TikTok, WhatsApp)
-- [ ] Fase 4: Processamento de Campanhas
-- [ ] Fase 5: IA Gemini para Análise
-- [ ] Fase 6: Interface Móvel
+- [ ] Fase 4: Mobile (React Native)
+- [ ] Fase 5: Segurança Avançada
+- [ ] Fase 6: Backup e Sincronização
+- [ ] Fase 7: Entrega Final
 
 ---
 
@@ -61,5 +125,11 @@
 - Criptografia: bcrypt para senhas, AES-256 para chaves de API
 - Segurança: Rate limiting (5 req/min login), logging completo
 - Docker: PostgreSQL + Node.js em containers
-- Endpoints: /auth/login, /auth/register, /keys/salvar, /keys/meus-dados
+
+### Fase 3
+- APIs: Google Ads, Instagram, TikTok, WhatsApp
+- IA: Gemini para otimização automática
+- Voz: Speech-to-text + Eleven Labs (text-to-speech)
+- Relatórios: Gráficos Tailwind com métricas em tempo real
+- WhatsApp: Assistente virtual com IA
 

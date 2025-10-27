@@ -8,19 +8,21 @@ import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
+import Campaigns from "./pages/Campaigns";
+import Reports from "./pages/Reports";
 
 function Router({
-  isAuthenticated,
+  isLoggedIn,
   isAdmin,
   onLogin,
   onLogout,
 }: {
-  isAuthenticated: boolean;
+  isLoggedIn: boolean;
   isAdmin: boolean;
   onLogin: () => void;
   onLogout: () => void;
 }) {
-  if (!isAuthenticated) {
+  if (!isLoggedIn) {
     return <Login onLoginSuccess={onLogin} />;
   }
 
@@ -31,6 +33,8 @@ function Router({
   return (
     <Switch>
       <Route path="/" component={() => <Dashboard onLogout={onLogout} />} />
+      <Route path="/campanhas" component={() => <Campaigns />} />
+      <Route path="/relatorio/:id" component={({ id }: any) => <Reports campaignId={id} />} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -38,33 +42,32 @@ function Router({
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check if user is already logged in on mount
   useEffect(() => {
-    const adminMode = localStorage.getItem('gaia_admin') === 'true';
-    const passwordSet = localStorage.getItem('gaia_password') !== null;
+    const adminMode = localStorage.getItem("gaia_admin") === "true";
+    const token = localStorage.getItem("gaia_token");
 
     if (adminMode) {
       setIsAdmin(true);
-      setIsAuthenticated(true);
-    } else if (passwordSet) {
-      // Password is set, but user needs to log in
-      setIsAuthenticated(false);
+      setIsLoggedIn(true);
+    } else if (token) {
+      setIsLoggedIn(true);
     }
   }, []);
 
   const handleLogin = () => {
-    const adminMode = localStorage.getItem('gaia_admin') === 'true';
+    const adminMode = localStorage.getItem("gaia_admin") === "true";
     setIsAdmin(adminMode);
-    setIsAuthenticated(true);
+    setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('gaia_admin');
+    localStorage.removeItem("gaia_admin");
+    localStorage.removeItem("gaia_token");
     setIsAdmin(false);
-    setIsAuthenticated(false);
+    setIsLoggedIn(false);
   };
 
   return (
@@ -73,7 +76,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router
-            isAuthenticated={isAuthenticated}
+            isLoggedIn={isLoggedIn}
             isAdmin={isAdmin}
             onLogin={handleLogin}
             onLogout={handleLogout}
