@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: gaia-postgres
+    environment:
+      POSTGRES_USER: gaia_user
+      POSTGRES_PASSWORD: gaia_password
+      POSTGRES_DB: gaia_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gaia_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gaia-network
+
+  # Node.js Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gaia-backend
+    environment:
+      DATABASE_URL: postgresql://gaia_user:gaia_password@postgres:5432/gaia_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: gaia_user
+      DB_PASSWORD: gaia_password
+      DB_NAME: gaia_db
+      JWT_SECRET: gaia-super-secret-jwt-key-2025-change-in-production
+      JWT_EXPIRATION: 15m
+      PORT: 3001
+      NODE_ENV: development
+      AES_SECRET_KEY: gaia-aes-secret-key-2025-change-in-production
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./server/src:/app/src
+      - /app/node_modules
+    networks:
+      - gaia-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  gaia-network:
+    driver: bridge
+

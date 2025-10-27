@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlertCircle } from 'lucide-react';
-import {
-  isPasswordSet,
-  saveEncryptedPassword,
-  validatePassword,
-} from '@/lib/crypto';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { login, register, saveToken } from '@/lib/api';
+import { isPasswordSet, saveEncryptedPassword } from '@/lib/crypto';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -19,61 +16,115 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSetPassword = (e: React.FormEvent) => {
+  const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // Validações básicas
-    if (!password) {
-      setError('Senha não pode estar vazia');
-      return;
+    try {
+      // Validações básicas
+      if (!email) {
+        setError('E-mail é obrigatório');
+        setLoading(false);
+        return;
+      }
+
+      if (!password) {
+        setError('Senha não pode estar vazia');
+        setLoading(false);
+        return;
+      }
+
+      if (password.length < 20) {
+        setError('Senha deve ter no mínimo 20 caracteres');
+        setLoading(false);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('As senhas não coincidem');
+        setLoading(false);
+        return;
+      }
+
+      // Registrar no backend
+      const response = await register(email, password);
+
+      if (!response.success) {
+        setError(response.message || 'Erro ao registrar');
+        setLoading(false);
+        return;
+      }
+
+      // Salvar token
+      if (response.data?.token) {
+        saveToken(response.data.token);
+      }
+
+      // Salvar senha criptografada localmente
+      saveEncryptedPassword(password);
+      setIsSettingPassword(false);
+      setPassword('');
+      setConfirmPassword('');
+      setEmail('');
+      setLoading(false);
+      onLoginSuccess();
+    } catch (err) {
+      setError('Erro ao registrar. Tente novamente.');
+      setLoading(false);
     }
-
-    if (password.length < 20) {
-      setError('Senha deve ter no mínimo 20 caracteres');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
-      return;
-    }
-
-    // Salva a senha criptografada
-    saveEncryptedPassword(password);
-    setIsSettingPassword(false);
-    setPassword('');
-    setConfirmPassword('');
-    setEmail('');
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // Verifica credenciais de admin
-    if (email === 'admin' && password === 'senha123') {
-      // Admin login - será tratado no App.tsx
-      localStorage.setItem('gaia_admin', 'true');
+    try {
+      // Verifica credenciais de admin
+      if (email === 'admin' && password === 'senha123') {
+        // Admin login
+        localStorage.setItem('gaia_admin', 'true');
+        setLoading(false);
+        onLoginSuccess();
+        return;
+      }
+
+      // Login regular
+      if (!email || !password) {
+        setError('E-mail e senha são obrigatórios');
+        setLoading(false);
+        return;
+      }
+
+      const response = await login(email, password);
+
+      if (!response.success) {
+        setError(response.message || 'Erro ao fazer login');
+        setLoading(false);
+        return;
+      }
+
+      // Salvar token
+      if (response.data?.token) {
+        saveToken(response.data.token);
+      }
+
+      setLoading(false);
       onLoginSuccess();
-      return;
+    } catch (err) {
+      setError('Erro ao fazer login. Tente novamente.');
+      setLoading(false);
     }
-
-    // Valida senha regular
-    if (!validatePassword(password)) {
-      setError('Senha incorreta');
-      return;
-    }
-
-    onLoginSuccess();
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#001F3F] to-[#2ECC40] flex flex-col items-center justify-center p-4">
       {/* Alert Bar */}
       {error && (
-        <div className="fixed top-0 left-0 right-0 bg-[#FF4136] text-white px-4 py-3 flex items-center gap-2">
+        <div className="fixed top-0 left-0 right-0 bg-[#FF4136] text-white px-4 py-3 flex items-center gap-2 z-50">
           <AlertCircle size={20} />
           <span>{error}</span>
         </div>
@@ -103,6 +154,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             <form onSubmit={handleSetPassword} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-mail
+                </label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Senha
                 </label>
                 <div className="relative">
@@ -112,6 +176,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 20 caracteres"
                     className="pr-10"
+                    disabled={loading}
                   />
                   <button
                     type="button"
@@ -135,14 +200,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repita a senha"
+                  disabled={loading}
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+                disabled={loading}
               >
-                Definir Senha
+                {loading && <Loader2 size={18} className="animate-spin" />}
+                {loading ? 'Registrando...' : 'Definir Senha'}
               </Button>
             </form>
           </>
@@ -162,6 +230,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
+                  disabled={loading}
                 />
               </div>
 
@@ -176,6 +245,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Digite sua senha"
                     className="pr-10"
+                    disabled={loading}
                   />
                   <button
                     type="button"
@@ -189,9 +259,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+                disabled={loading}
               >
-                Entrar
+                {loading && <Loader2 size={18} className="animate-spin" />}
+                {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
           </>
