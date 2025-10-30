@@ -63,7 +63,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "zod": "^4.1.12",
-    "jsonwebtoken": "^9.1.2",
+    "jsonwebtoken": "^9.0.0",
     "cors": "^2.8.5"
   },
   "devDependencies": {
