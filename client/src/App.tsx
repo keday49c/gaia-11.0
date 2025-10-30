@@ -10,18 +10,25 @@ import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Campaigns from "./pages/Campaigns";
 import Reports from "./pages/Reports";
+import Welcome from "./pages/Welcome";
 
 function Router({
   isLoggedIn,
   isAdmin,
   onLogin,
   onLogout,
+  showWelcome,
 }: {
   isLoggedIn: boolean;
   isAdmin: boolean;
   onLogin: () => void;
   onLogout: () => void;
+  showWelcome: boolean;
 }) {
+  if (showWelcome) {
+    return <Welcome />;
+  }
+
   if (!isLoggedIn) {
     return <Login onLoginSuccess={onLogin} />;
   }
@@ -44,16 +51,24 @@ function Router({
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     const adminMode = localStorage.getItem("gaia_admin") === "true";
     const token = localStorage.getItem("gaia_token");
+    const welcomeShown = localStorage.getItem("gaia_welcome_shown") === "true";
 
     if (adminMode) {
       setIsAdmin(true);
       setIsLoggedIn(true);
+      setShowWelcome(false);
     } else if (token) {
       setIsLoggedIn(true);
+      setShowWelcome(false);
+    } else if (!welcomeShown) {
+      setShowWelcome(true);
+    } else {
+      setShowWelcome(false);
     }
   }, []);
 
@@ -80,6 +95,7 @@ function App() {
             isAdmin={isAdmin}
             onLogin={handleLogin}
             onLogout={handleLogout}
+            showWelcome={showWelcome}
           />
         </TooltipProvider>
       </ThemeProvider>
