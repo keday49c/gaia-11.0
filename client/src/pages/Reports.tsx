@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Eye, Click } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Eye, MousePointer } from 'lucide-react';
 
 interface Metric {
   plataforma: string;
@@ -108,7 +108,7 @@ export default function Reports({ campaignId }: ReportProps) {
                 trend={12}
               />
               <KPICard
-                icon={Click}
+                icon={MousePointer}
                 label="Cliques"
                 value={totalMetrics.cliques.toLocaleString()}
                 trend={8}
