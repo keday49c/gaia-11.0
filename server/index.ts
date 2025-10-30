@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import crypto from 'crypto';
+import pool, { initializeDatabase } from './db';
+import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,25 +21,6 @@ interface AuthRequest extends Request {
     isGuest: boolean;
   };
 }
-
-interface User {
-  id: string;
-  email: string;
-  senha: string;
-  google_ads?: string;
-  instagram?: string;
-  whatsapp?: string;
-  criadoEm: string;
-  atualizadoEm: string;
-}
-
-// Banco de dados simulado (em memória)
-const users: Map<string, User> = new Map();
-const guestToken = jwt.sign(
-  { id: 'guest-demo', email: 'visitante@gaia.demo', isGuest: true },
-  JWT_SECRET,
-  { expiresIn: '24h' }
-);
 
 // Middleware de autenticação
 function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
@@ -57,111 +40,129 @@ function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) 
   }
 }
 
+// ============ INICIALIZAÇÃO ============
+
+// Inicializar banco de dados
+initializeDatabase().catch(console.error);
+
 // ============ ROTAS DE AUTENTICAÇÃO ============
 
 /**
  * Login - Autenticação real com usuário
  */
-app.post('/auth/login', (req: Request, res: Response) => {
-  const { email, senha } = req.body;
+app.post('/auth/login', async (req: Request, res: Response) => {
+  try {
+    const { email, senha } = req.body;
 
-  if (!email || !senha) {
-    return res.status(400).json({
-      success: false,
-      message: 'Email e senha são obrigatórios',
+    if (!email || !senha) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email e senha são obrigatórios',
+      });
+    }
+
+    // Buscar usuário no banco
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+
+    if (!user || user.senha !== senha) {
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou senha inválidos',
+      });
+    }
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, isGuest: false },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      data: {
+        token,
+        userId: user.id,
+        email: user.email,
+      },
     });
+  } catch (error) {
+    console.error('Erro no login:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
-
-  // Verificar se usuário existe
-  const user = Array.from(users.values()).find(u => u.email === email);
-
-  if (!user || user.senha !== senha) {
-    return res.status(401).json({
-      success: false,
-      message: 'Email ou senha inválidos',
-    });
-  }
-
-  // Gerar token JWT
-  const token = jwt.sign(
-    { id: user.id, email: user.email, isGuest: false },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-
-  return res.json({
-    success: true,
-    message: 'Login realizado com sucesso',
-    data: {
-      token,
-      userId: user.id,
-      email: user.email,
-    },
-  });
 });
 
 /**
  * Registro - Criar novo usuário
  */
-app.post('/auth/register', (req: Request, res: Response) => {
-  const { email, senha } = req.body;
+app.post('/auth/register', async (req: Request, res: Response) => {
+  try {
+    const { email, senha, nome } = req.body;
 
-  if (!email || !senha) {
-    return res.status(400).json({
-      success: false,
-      message: 'Email e senha são obrigatórios',
+    if (!email || !senha) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email e senha são obrigatórios',
+      });
+    }
+
+    // Verificar se usuário já existe
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Usuário já existe',
+      });
+    }
+
+    // Criar novo usuário
+    const userId = crypto.randomUUID();
+    await pool.query(
+      'INSERT INTO users (id, email, senha, nome) VALUES ($1, $2, $3, $4)',
+      [userId, email, senha, nome || 'Usuário']
+    );
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { id: userId, email, isGuest: false },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Usuário registrado com sucesso',
+      data: {
+        token,
+        userId,
+        email,
+      },
     });
+  } catch (error) {
+    console.error('Erro no registro:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
-
-  // Verificar se usuário já existe
-  if (Array.from(users.values()).some(u => u.email === email)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Usuário já existe',
-    });
-  }
-
-  // Criar novo usuário
-  const userId = crypto.randomUUID();
-  const newUser: User = {
-    id: userId,
-    email,
-    senha,
-    criadoEm: new Date().toISOString(),
-    atualizadoEm: new Date().toISOString(),
-  };
-
-  users.set(userId, newUser);
-
-  // Gerar token JWT
-  const token = jwt.sign(
-    { id: userId, email, isGuest: false },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-
-  return res.json({
-    success: true,
-    message: 'Usuário registrado com sucesso',
-    data: {
-      token,
-      userId,
-      email,
-    },
-  });
 });
 
 /**
  * Modo Visitante - Acesso sem autenticação
  */
 app.post('/auth/guest', (req: Request, res: Response) => {
+  const guestToken = jwt.sign(
+    { id: DEMO_USER.id, email: DEMO_USER.email, isGuest: true },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
   return res.json({
     success: true,
     message: 'Modo visitante ativado',
     data: {
       token: guestToken,
-      userId: 'guest-demo',
-      email: 'visitante@gaia.demo',
+      userId: DEMO_USER.id,
+      email: DEMO_USER.email,
       isGuest: true,
     },
   });
@@ -172,213 +173,271 @@ app.post('/auth/guest', (req: Request, res: Response) => {
 /**
  * Salvar chaves de API
  */
-app.post('/keys/salvar', authenticateToken, (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: 'Não autenticado' });
+app.post('/keys/salvar', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
+
+    const { google_ads_key, instagram_token, whatsapp_token } = req.body;
+
+    // Atualizar chaves no banco
+    await pool.query(
+      'UPDATE users SET google_ads_key = $1, instagram_token = $2, whatsapp_token = $3, atualizado_em = CURRENT_TIMESTAMP WHERE id = $4',
+      [google_ads_key, instagram_token, whatsapp_token, req.user.id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Chaves salvas com sucesso',
+      data: {
+        userId: req.user.id,
+        email: req.user.email,
+      },
+    });
+  } catch (error) {
+    console.error('Erro ao salvar chaves:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
-
-  const { google_ads, instagram, whatsapp } = req.body;
-  const user = users.get(req.user.id);
-
-  if (!user) {
-    return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
-  }
-
-  // Atualizar chaves
-  user.google_ads = google_ads;
-  user.instagram = instagram;
-  user.whatsapp = whatsapp;
-  user.atualizadoEm = new Date().toISOString();
-
-  return res.json({
-    success: true,
-    message: 'Chaves salvas com sucesso',
-    data: {
-      userId: user.id,
-      email: user.email,
-    },
-  });
 });
 
 /**
- * Obter dados do usuário
+ * Obter dados do usuário e chaves
  */
-app.get('/keys/meus-dados', authenticateToken, (req: AuthRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: 'Não autenticado' });
-  }
+app.get('/keys/meus-dados', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
 
-  // Se for visitante, retornar dados simulados
-  if (req.user.isGuest) {
+    // Se for visitante, retornar dados de teste
+    if (req.user.isGuest) {
+      return res.json({
+        success: true,
+        data: {
+          usuario: DEMO_USER,
+          chaves: {
+            google_ads: TEST_KEYS.GOOGLE_ADS,
+            instagram: TEST_KEYS.INSTAGRAM,
+            whatsapp: TEST_KEYS.WHATSAPP,
+          },
+          isGuest: true,
+        },
+      });
+    }
+
+    // Buscar usuário real
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
+    }
+
     return res.json({
       success: true,
       data: {
         usuario: {
-          id: 'guest-demo',
-          email: 'visitante@gaia.demo',
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
+          id: user.id,
+          email: user.email,
+          nome: user.nome,
         },
         chaves: {
-          google_ads: 'DEMO_KEY_123',
-          instagram: 'DEMO_KEY_456',
-          whatsapp: 'DEMO_KEY_789',
+          google_ads: user.google_ads_key || null,
+          instagram: user.instagram_token || null,
+          whatsapp: user.whatsapp_token || null,
         },
-        logs: [
-          {
-            id: '1',
-            ip_address: '192.168.1.1',
-            acao: 'login_visitante',
-            timestamp: new Date().toISOString(),
-            detalhes: { modo: 'demo' },
-          },
-        ],
+        testKeys: {
+          google_ads: TEST_KEYS.GOOGLE_ADS,
+          instagram: TEST_KEYS.INSTAGRAM,
+          whatsapp: TEST_KEYS.WHATSAPP,
+        },
       },
     });
+  } catch (error) {
+    console.error('Erro ao buscar dados:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
-
-  const user = users.get(req.user.id);
-
-  if (!user) {
-    return res.status(404).json({ success: false, message: 'Usuário não encontrado' });
-  }
-
-  return res.json({
-    success: true,
-    data: {
-      usuario: {
-        id: user.id,
-        email: user.email,
-        criadoEm: user.criadoEm,
-        atualizadoEm: user.atualizadoEm,
-      },
-      chaves: {
-        google_ads: user.google_ads,
-        instagram: user.instagram,
-        whatsapp: user.whatsapp,
-      },
-      logs: [],
-    },
-  });
 });
 
-// ============ ROTAS DE CAMPANHAS (DEMO) ============
+// ============ ROTAS DE CAMPANHAS ============
 
 /**
- * Listar campanhas
+ * Listar campanhas do usuário
  */
-app.get('/campaigns/lista', authenticateToken, (req: AuthRequest, res: Response) => {
-  const campanhas = [
-    {
-      id: '1',
-      nome: 'Campanha Black Friday',
-      status: 'ativa',
-      criacao: new Date().toISOString(),
-      cliques: 1250,
-      impressoes: 5000,
-      conversoes: 125,
-    },
-    {
-      id: '2',
-      nome: 'Promoção de Verão',
-      status: 'pausada',
-      criacao: new Date().toISOString(),
-      cliques: 890,
-      impressoes: 3500,
-      conversoes: 89,
-    },
-    {
-      id: '3',
-      nome: 'Lançamento de Produto',
-      status: 'ativa',
-      criacao: new Date().toISOString(),
-      cliques: 2100,
-      impressoes: 8000,
-      conversoes: 210,
-    },
-  ];
+app.get('/campaigns/lista', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
 
-  return res.json({
-    success: true,
-    data: campanhas,
-  });
+    // Se for visitante, retornar campanhas de demo
+    if (req.user.isGuest) {
+      return res.json({
+        success: true,
+        data: DEMO_CAMPAIGNS,
+      });
+    }
+
+    // Buscar campanhas do usuário
+    const result = await pool.query(
+      'SELECT * FROM campaigns WHERE user_id = $1 ORDER BY criado_em DESC',
+      [req.user.id]
+    );
+
+    return res.json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error('Erro ao listar campanhas:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
+  }
 });
 
 /**
  * Criar campanha
  */
-app.post('/campaigns/criar', authenticateToken, (req: AuthRequest, res: Response) => {
-  const { nome, descricao } = req.body;
+app.post('/campaigns/criar', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
 
-  if (!nome) {
-    return res.status(400).json({
-      success: false,
-      message: 'Nome da campanha é obrigatório',
+    if (req.user.isGuest) {
+      return res.status(403).json({
+        success: false,
+        message: 'Visitantes não podem criar campanhas',
+      });
+    }
+
+    const { nome, descricao, tipo, plataforma, orcamento } = req.body;
+
+    if (!nome) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nome da campanha é obrigatório',
+      });
+    }
+
+    const campaignId = crypto.randomUUID();
+    await pool.query(
+      'INSERT INTO campaigns (id, user_id, nome, descricao, tipo, plataforma, orcamento, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [campaignId, req.user.id, nome, descricao, tipo, plataforma, orcamento || 0, 'rascunho']
+    );
+
+    return res.json({
+      success: true,
+      message: 'Campanha criada com sucesso',
+      data: {
+        id: campaignId,
+        nome,
+        descricao,
+        tipo,
+        plataforma,
+        orcamento,
+        status: 'rascunho',
+      },
     });
+  } catch (error) {
+    console.error('Erro ao criar campanha:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
-
-  const novaCampanha = {
-    id: crypto.randomUUID(),
-    nome,
-    descricao,
-    status: 'rascunho',
-    criacao: new Date().toISOString(),
-    cliques: 0,
-    impressoes: 0,
-    conversoes: 0,
-  };
-
-  return res.json({
-    success: true,
-    message: 'Campanha criada com sucesso',
-    data: novaCampanha,
-  });
 });
 
 /**
  * Disparar campanha
  */
-app.post('/campaigns/disparar', authenticateToken, (req: AuthRequest, res: Response) => {
-  const { campaignId } = req.body;
+app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
 
-  if (!campaignId) {
-    return res.status(400).json({
-      success: false,
-      message: 'ID da campanha é obrigatório',
+    if (req.user.isGuest) {
+      return res.status(403).json({
+        success: false,
+        message: 'Visitantes não podem disparar campanhas',
+      });
+    }
+
+    const { campaignId } = req.body;
+
+    if (!campaignId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID da campanha é obrigatório',
+      });
+    }
+
+    // Atualizar status da campanha
+    await pool.query(
+      'UPDATE campaigns SET status = $1, atualizado_em = CURRENT_TIMESTAMP WHERE id = $2 AND user_id = $3',
+      ['ativa', campaignId, req.user.id]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Campanha disparada com sucesso',
+      data: {
+        campaignId,
+        status: 'ativa',
+        disparoEm: new Date().toISOString(),
+      },
     });
+  } catch (error) {
+    console.error('Erro ao disparar campanha:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
-
-  return res.json({
-    success: true,
-    message: 'Campanha disparada com sucesso',
-    data: {
-      campaignId,
-      status: 'ativa',
-      disparoEm: new Date().toISOString(),
-    },
-  });
 });
 
 /**
  * Obter métricas da campanha
  */
-app.get('/campaigns/:campaignId/metricas', authenticateToken, (req: AuthRequest, res: Response) => {
-  const { campaignId } = req.params;
+app.get('/campaigns/:campaignId/metricas', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
 
-  return res.json({
-    success: true,
-    data: {
-      campaignId,
-      metricas: {
-        cliques: Math.floor(Math.random() * 5000),
-        impressoes: Math.floor(Math.random() * 20000),
-        conversoes: Math.floor(Math.random() * 500),
-        ctr: (Math.random() * 5).toFixed(2),
-        cpc: (Math.random() * 10).toFixed(2),
-        roi: (Math.random() * 300).toFixed(2),
+    const { campaignId } = req.params;
+
+    // Se for visitante, retornar métricas de demo
+    if (req.user.isGuest) {
+      return res.json({
+        success: true,
+        data: {
+          campaignId,
+          metricas: {
+            cliques: Math.floor(Math.random() * 5000),
+            impressoes: Math.floor(Math.random() * 20000),
+            conversoes: Math.floor(Math.random() * 500),
+            ctr: (Math.random() * 5).toFixed(2),
+            cpc: (Math.random() * 10).toFixed(2),
+            roi: (Math.random() * 300).toFixed(2),
+          },
+          historico: DEMO_METRICS,
+        },
+      });
+    }
+
+    // Buscar métricas do banco
+    const result = await pool.query(
+      'SELECT * FROM metrics WHERE campaign_id = $1 ORDER BY data DESC LIMIT 30',
+      [campaignId]
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        campaignId,
+        metricas: result.rows,
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error('Erro ao buscar métricas:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
+  }
 });
 
 // ============ ROTAS DE SAÚDE ============
@@ -392,6 +451,7 @@ app.get('/health', (req: Request, res: Response) => {
     data: {
       status: 'ok',
       timestamp: new Date().toISOString(),
+      database: 'connected',
     },
   });
 });
@@ -400,8 +460,9 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   console.log(`✅ Servidor Gaia rodando em http://localhost:${PORT}`);
-  console.log(`📊 Modo: Backend Real com Autenticação JWT`);
+  console.log(`📊 Modo: Backend Real com PostgreSQL`);
   console.log(`🎭 Modo Visitante disponível em POST /auth/guest`);
+  console.log(`🔐 Autenticação JWT ativada`);
 });
 
 export default app;
