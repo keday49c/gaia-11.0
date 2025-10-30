@@ -3,11 +3,6 @@
   "outputDirectory": "./dist/public",
   "cleanUrls": true,
   "trailingSlash": false,
-  "functions": {
-    "api/index.ts": {
-      "runtime": "nodejs@18.x"
-    }
-  },
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -29,10 +24,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
