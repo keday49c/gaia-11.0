@@ -2,7 +2,8 @@
  * Serviço de API para comunicação com o backend Gaia
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = API_URL;
 
 interface ApiResponse<T> {
   success: boolean;
@@ -21,10 +22,13 @@ async function apiRequest<T>(
   const url = `${API_BASE_URL}${endpoint}`;
   const token = localStorage.getItem('gaia_token');
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
   };
+  
+  if (options.headers && typeof options.headers === 'object') {
+    Object.assign(headers, options.headers);
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
