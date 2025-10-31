@@ -22,10 +22,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
   },
   server: {
     port: 3000,
-    strictPort: false, // Will find next available port if 3000 is busy
+    strictPort: false,
     host: true,
     allowedHosts: [
       ".manuspre.computer",
@@ -40,5 +47,10 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    middlewareMode: false,
+  },
+  preview: {
+    port: 3000,
+    host: true,
   },
 });
