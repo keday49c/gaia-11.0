@@ -19,9 +19,20 @@ export default function Reports({ campaignId }: ReportProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadMetrics();
-    const interval = setInterval(loadMetrics, 5000);
-    return () => clearInterval(interval);
+    let isMounted = true;
+    
+    const loadMetricsIfMounted = async () => {
+      if (!isMounted) return;
+      await loadMetrics();
+    };
+    
+    loadMetricsIfMounted();
+    const interval = setInterval(loadMetricsIfMounted, 5000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [campaignId]);
 
   const loadMetrics = async () => {
@@ -34,12 +45,12 @@ export default function Reports({ campaignId }: ReportProps) {
       });
 
       const data = await response.json();
-      if (data.success && data.data.length > 0) {
+      if (data.success && data.data && data.data.length > 0) {
         setMetrics(data.data);
+        setLoading(false);
       }
     } catch (err) {
       console.error('Erro ao carregar métricas:', err);
-    } finally {
       setLoading(false);
     }
   };

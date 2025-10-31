@@ -28,7 +28,18 @@ export default function Campaigns() {
   });
 
   useEffect(() => {
-    loadCampaigns();
+    let isMounted = true;
+    
+    const loadCampaignsIfMounted = async () => {
+      if (!isMounted) return;
+      await loadCampaigns();
+    };
+    
+    loadCampaignsIfMounted();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loadCampaigns = async () => {
@@ -38,7 +49,7 @@ export default function Campaigns() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.success) {
+      if (data && data.success && data.data) {
         setCampaigns(data.data || []);
       }
     } catch (err) {

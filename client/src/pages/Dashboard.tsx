@@ -17,13 +17,24 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadUserData();
+    let isMounted = true;
+    
+    const loadUserDataIfMounted = async () => {
+      if (!isMounted) return;
+      await loadUserData();
+    };
+    
+    loadUserDataIfMounted();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loadUserData = async () => {
     try {
       const response = await getMyData();
-      if (response.success && response.data) {
+      if (response && response.success && response.data) {
         setUserData(response.data);
         if (response.data.chaves) {
           setGoogleAdsKey(response.data.chaves.google_ads || '');
