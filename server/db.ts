@@ -2,13 +2,26 @@ import { Pool } from 'pg';
 
 // Configurar conexão com PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/gaia',
+  connectionString: process.env.DATABASE_URL || 'postgresql://gaia_user:gaia_password@postgres:5432/gaia_db',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+// Event handlers para pool
+pool.on('error', (err) => {
+  console.error('❌ Erro inesperado no pool de conexões:', err);
+});
+
+pool.on('connect', () => {
+  console.log('✅ Nova conexão estabelecida com o banco de dados');
 });
 
 // Schema do banco de dados
 export const initializeDatabase = async () => {
   try {
+    // Testar conexão
+    const testConnection = await pool.query('SELECT NOW()');
+    console.log('✅ Conexão com banco de dados estabelecida:', testConnection.rows[0]);
+
     // Tabela de usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -23,6 +36,7 @@ export const initializeDatabase = async () => {
         atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Tabela "users" pronta');
 
     // Tabela de campanhas
     await pool.query(`
@@ -47,6 +61,7 @@ export const initializeDatabase = async () => {
         atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Tabela "campaigns" pronta');
 
     // Tabela de métricas
     await pool.query(`
@@ -62,6 +77,7 @@ export const initializeDatabase = async () => {
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Tabela "metrics" pronta');
 
     // Tabela de logs
     await pool.query(`
@@ -74,10 +90,12 @@ export const initializeDatabase = async () => {
         criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log('✅ Tabela "logs" pronta');
 
-    console.log('✅ Banco de dados inicializado com sucesso');
+    console.log('\n✅ Banco de dados inicializado com sucesso\n');
   } catch (error) {
-    console.error('❌ Erro ao inicializar banco de dados:', error);
+    console.error('\n❌ Erro ao inicializar banco de dados:', error);
+    throw error;
   }
 };
 

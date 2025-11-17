@@ -8,10 +8,25 @@ import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys'
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'gaia-secret-key-2025';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+
+// CORS Configuration - Allow multiple origins
+const corsOptions = {
+  origin: CORS_ORIGIN.split(',').map(origin => origin.trim()),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
 
 // Tipos
 interface AuthRequest extends Request {
@@ -456,13 +471,52 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Root endpoint
+ */
+app.get('/', (req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    message: 'Gaia 10.0 - API Backend',
+    version: '1.0.0',
+    endpoints: {
+      auth: ['/auth/login', '/auth/register', '/auth/guest'],
+      keys: ['/keys/salvar', '/keys/meus-dados'],
+      campaigns: ['/campaigns/lista', '/campaigns/criar', '/campaigns/disparar', '/campaigns/:campaignId/metricas'],
+      health: ['/health'],
+    },
+  });
+});
+
+// ============ ERROR HANDLING ============
+
+// 404 Handler
+app.use((req: Request, res: Response) => {
+  return res.status(404).json({
+    success: false,
+    message: 'Rota não encontrada',
+    path: req.path,
+  });
+});
+
+// Global error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Erro não tratado:', err);
+  return res.status(500).json({
+    success: false,
+    message: 'Erro interno do servidor',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+  });
+});
+
 // ============ INICIAR SERVIDOR ============
 
 app.listen(PORT, () => {
-  console.log(`✅ Servidor Gaia rodando em http://localhost:${PORT}`);
+  console.log(`\n✅ Servidor Gaia rodando em http://localhost:${PORT}`);
   console.log(`📊 Modo: Backend Real com PostgreSQL`);
   console.log(`🎭 Modo Visitante disponível em POST /auth/guest`);
   console.log(`🔐 Autenticação JWT ativada`);
+  console.log(`🌐 CORS Origins: ${CORS_ORIGIN}\n`);
 });
 
 export default app;

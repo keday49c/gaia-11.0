@@ -1,0 +1,34 @@
+{
+  "name": "gaia-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Gaia 10.0 - Backend API com Express e PostgreSQL",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.0",
+    "pg": "^8.11.3",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^24.7.0",
+    "@types/pg": "^8.15.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
+
