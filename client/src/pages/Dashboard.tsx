@@ -52,11 +52,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     setLoading(true);
 
     try {
-      if (!googleAdsKey && !instagramKey && !whatsappKey) {
-        setError('Forneca pelo menos uma chave de API');
-        setLoading(false);
-        return;
-      }
+      // Modo visitante permite salvar sem chaves (para teste)
+      // Em produção, você pode exigir pelo menos uma chave
 
       const response = await saveApiKeys(googleAdsKey, instagramKey, whatsappKey);
 
