@@ -32,9 +32,6 @@ RUN npm install --production
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy .env file
-COPY server/.env ./
-
 # Expose port
 EXPOSE 3001
 
