@@ -15,6 +15,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -49,12 +50,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
   const handleSave = async () => {
     setError('');
+    setSuccess(false);
     setLoading(true);
 
     try {
       // Modo visitante permite salvar sem chaves (para teste)
-      // Em produção, você pode exigir pelo menos uma chave
-
       const response = await saveApiKeys(googleAdsKey, instagramKey, whatsappKey);
 
       if (!response.success) {
@@ -64,16 +64,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       }
 
       console.log('=== GAIA - API KEYS SALVAS ===');
-      console.log('Google Ads Key:', googleAdsKey);
-      console.log('Instagram Key:', instagramKey);
-      console.log('WhatsApp Key:', whatsappKey);
+      console.log('Google Ads Key:', googleAdsKey ? '***' : '(vazio)');
+      console.log('Instagram Key:', instagramKey ? '***' : '(vazio)');
+      console.log('WhatsApp Key:', whatsappKey ? '***' : '(vazio)');
       console.log('Timestamp:', new Date().toISOString());
       console.log('================================');
 
-      await loadUserData();
+      setSuccess(true);
       setLoading(false);
-      alert('Chaves salvas com sucesso!');
+      
+      // Aguardar 2 segundos e redirecionar
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
     } catch (err) {
+      console.error('Erro ao salvar:', err);
       setError('Erro ao salvar chaves. Tente novamente.');
       setLoading(false);
     }
@@ -107,8 +112,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         </div>
 
         {error && (
-          <div className="mb-6 bg-[#FF4136] text-white px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-500 text-white px-4 py-3 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 bg-green-500 text-white px-4 py-3 rounded-lg">
+            ✅ Chaves salvas com sucesso! Redirecionando...
           </div>
         )}
 
@@ -175,8 +186,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 flex items-center justify-center gap-2"
                 disabled={loading}
               >
-                {loading && <Loader2 size={18} className="animate-spin" />}
-                {loading ? 'Salvando...' : 'Salvar Chaves'}
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar Chaves'
+                )}
               </Button>
               <p className="text-xs text-gray-500 mt-2">
                 As chaves serao criptografadas com AES-256 no backend
@@ -229,3 +246,4 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     </div>
   );
 }
+
