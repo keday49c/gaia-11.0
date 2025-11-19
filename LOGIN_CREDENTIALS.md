@@ -23,7 +23,7 @@
 ### 🔒 LOGIN REAL (Com Credenciais)
 
 **Email:** `admin@gaia.local`  
-**Senha:** `admin123`
+**Senha:** `senha123`
 
 **Benefícios:**
 - ✅ Acesso persistente
@@ -34,7 +34,7 @@
 **Passos:**
 1. Clique em **"Login Real"** na tela inicial
 2. Digite: `admin@gaia.local`
-3. Digite: `admin123`
+3. Digite: `senha123`
 4. Clique em **"Fazer Login"**
 
 ---

@@ -92,6 +92,22 @@ export const initializeDatabase = async () => {
     `);
     console.log('✅ Tabela "logs" pronta');
 
+    // Seed usuário padrão se não existir
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      ['admin@gaia.local']
+    );
+
+    if (existingUser.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO users (email, senha, nome) VALUES ($1, $2, $3)`,
+        ['admin@gaia.local', 'senha123', 'Administrador']
+      );
+      console.log('✅ Usuário padrão criado: admin@gaia.local / senha123');
+    } else {
+      console.log('✅ Usuário padrão já existe no banco de dados');
+    }
+
     console.log('\n✅ Banco de dados inicializado com sucesso\n');
   } catch (error) {
     console.error('\n❌ Erro ao inicializar banco de dados:', error);
