@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Eye, MousePointer } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 interface Metric {
   plataforma: string;
@@ -40,7 +41,7 @@ export default function Reports({ campaignId }: ReportProps) {
       const token = localStorage.getItem('gaia_token');
       if (!campaignId) return;
 
-      const response = await fetch(`http://localhost:3001/campaigns/${campaignId}/metricas`, {
+      const response = await fetch(`${API_URL}/campaigns/${campaignId}/metricas`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

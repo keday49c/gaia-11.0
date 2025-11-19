@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Play, Trash2 } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 interface TestCampaign {
   id: string;
@@ -29,7 +30,7 @@ export default function TestMode() {
 
     try {
       const token = localStorage.getItem('gaia_token');
-      const response = await fetch('http://localhost:3001/test-mode/simular', {
+      const response = await fetch(`${API_URL}/test-mode/simular`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +61,7 @@ export default function TestMode() {
   const loadTestCampaigns = async () => {
     try {
       const token = localStorage.getItem('gaia_token');
-      const response = await fetch('http://localhost:3001/test-mode/lista', {
+      const response = await fetch(`${API_URL}/test-mode/lista`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -78,7 +79,7 @@ export default function TestMode() {
 
     try {
       const token = localStorage.getItem('gaia_token');
-      const response = await fetch(`http://localhost:3001/test-mode/${id}`, {
+      const response = await fetch(`${API_URL}/test-mode/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

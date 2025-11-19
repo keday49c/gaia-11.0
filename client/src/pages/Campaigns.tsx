@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Zap, TrendingUp, Loader2 } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 interface Campaign {
   id: string;
@@ -45,7 +46,7 @@ export default function Campaigns() {
   const loadCampaigns = async () => {
     try {
       const token = localStorage.getItem('gaia_token');
-      const response = await fetch('http://localhost:3001/campaigns/lista', {
+      const response = await fetch(`${API_URL}/campaigns/lista`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -70,7 +71,7 @@ export default function Campaigns() {
         interesses: formData.interesses.split(',').map((i) => i.trim()),
       };
 
-      const response = await fetch('http://localhost:3001/campaigns/criar', {
+      const response = await fetch(`${API_URL}/campaigns/criar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ export default function Campaigns() {
     setLoading(true);
     try {
       const token = localStorage.getItem('gaia_token');
-      const response = await fetch('http://localhost:3001/campaigns/disparar', {
+      const response = await fetch(`${API_URL}/campaigns/disparar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
