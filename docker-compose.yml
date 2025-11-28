@@ -36,20 +36,21 @@ services:
       DB_USER: gaia_user
       DB_PASSWORD: gaia_password
       DB_NAME: gaia_db
-      
+
       # Server Configuration
       PORT: 3001
       NODE_ENV: development
-      
+
       # JWT Configuration
       JWT_SECRET: gaia-super-secret-jwt-key-2025-change-in-production
       JWT_EXPIRATION: 15m
-      
+
       # Security
       AES_SECRET_KEY: gaia-aes-secret-key-2025-change-in-production
-      
-      # CORS Configuration - Allow multiple origins for different environments
-      CORS_ORIGIN: http://localhost:3000,http://172.18.0.1:3000,http://host.docker.internal:3000
+
+      # CORS Configuration - Alterado para usar o nome do serviço 'frontend'
+      CORS_ORIGIN: http://localhost:3000,http://172.18.0.1:3000,http://host.docker.internal:3000,http://frontend
+
     ports:
       - "3001:3001"
     depends_on:
@@ -63,6 +64,19 @@ services:
       - gaia-network
     command: npm run dev
 
+  # React Frontend (NOVO SERVIÇO ADICIONADO)
+  frontend:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: gaia-frontend
+    ports:
+      - "3000:80" # Mapeia a porta 3000 do host para a porta 80 do Nginx no contêiner
+    depends_on:
+      - backend
+    networks:
+      - gaia-network
+
 volumes:
   postgres_data:
     driver: local
@@ -70,4 +84,3 @@ volumes:
 networks:
   gaia-network:
     driver: bridge
-
