@@ -4,6 +4,9 @@ import cors from 'cors';
 import crypto from 'crypto';
 import pool, { initializeDatabase } from './db';
 import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys';
+import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
+import { z } from 'zod';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,6 +24,26 @@ const corsOptions = {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Rate limiter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // limit each IP to 10 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Zod schemas for basic validation
+const loginSchema = z.object({
+  email: z.string().min(1),
+  senha: z.string().min(1),
+});
+
+const registerSchema = z.object({
+  email: z.string().email(),
+  senha: z.string().min(6),
+  nome: z.string().optional(),
+});
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -67,24 +90,25 @@ initializeDatabase().catch(console.error);
  */
 app.post('/auth/login', async (req: Request, res: Response) => {
   try {
-    const { email, senha } = req.body;
-
-    if (!email || !senha) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email e senha são obrigatórios',
-      });
+    // validate input
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: 'Entrada inválida', details: parsed.error.errors });
     }
+
+    const { email, senha } = parsed.data;
 
     // Buscar usuário no banco
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
-    if (!user || user.senha !== senha) {
-      return res.status(401).json({
-        success: false,
-        message: 'Email ou senha inválidos',
-      });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Email ou senha inválidos' });
+    }
+
+    const match = await bcrypt.compare(senha, user.senha);
+    if (!match) {
+      return res.status(401).json({ success: false, message: 'Email ou senha inválidos' });
     }
 
     // Gerar token JWT
@@ -112,32 +136,24 @@ app.post('/auth/login', async (req: Request, res: Response) => {
 /**
  * Registro - Criar novo usuário
  */
-app.post('/auth/register', async (req: Request, res: Response) => {
+app.post('/auth/register', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { email, senha, nome } = req.body;
-
-    if (!email || !senha) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email e senha são obrigatórios',
-      });
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: 'Entrada inválida', details: parsed.error.errors });
     }
+    const { email, senha, nome } = parsed.data;
 
     // Verificar se usuário já existe
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Usuário já existe',
-      });
+      return res.status(400).json({ success: false, message: 'Usuário já existe' });
     }
 
-    // Criar novo usuário
+    // Criar novo usuário (hash da senha)
     const userId = crypto.randomUUID();
-    await pool.query(
-      'INSERT INTO users (id, email, senha, nome) VALUES ($1, $2, $3, $4)',
-      [userId, email, senha, nome || 'Usuário']
-    );
+    const hashedSenha = await bcrypt.hash(senha, 10);
+    await pool.query('INSERT INTO users (id, email, senha, nome) VALUES ($1, $2, $3, $4)', [userId, email, hashedSenha, nome || 'Usuário']);
 
     // Gerar token JWT
     const token = jwt.sign(
