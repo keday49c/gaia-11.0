@@ -2,8 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import crypto from 'crypto';
-import pool, { initializeDatabase } from './db';
-import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys';
+import pool, { initializeDatabase } from './db.js';
+import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys.js';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
@@ -233,6 +233,49 @@ app.post('/keys/salvar', authenticateToken, async (req: AuthRequest, res: Respon
 });
 
 /**
+ * Endpoint POC para validar chaves de API sem integração externa.
+ * Retorna um objeto com o status de cada provedor: ok:boolean, message:string
+ */
+app.post('/keys/validate', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { google_ads_key, instagram_token, whatsapp_token } = req.body;
+
+    // Validações simples/simuladas:
+    const validateGoogle = () => {
+      if (!google_ads_key) return { ok: false, message: 'Vazio' };
+      if (String(google_ads_key).startsWith('TEST_')) return { ok: true, message: 'TEST key accepted' };
+      if (String(google_ads_key).length > 10) return { ok: true, message: 'Formato plausível' };
+      return { ok: false, message: 'Formato inválido' };
+    };
+
+    const validateInstagram = () => {
+      if (!instagram_token) return { ok: false, message: 'Vazio' };
+      if (String(instagram_token).startsWith('TEST_')) return { ok: true, message: 'TEST token accepted' };
+      if (String(instagram_token).length > 20) return { ok: true, message: 'Formato plausível' };
+      return { ok: false, message: 'Formato inválido' };
+    };
+
+    const validateWhatsapp = () => {
+      if (!whatsapp_token) return { ok: false, message: 'Vazio' };
+      if (String(whatsapp_token).startsWith('TEST_')) return { ok: true, message: 'TEST token accepted' };
+      if (String(whatsapp_token).length > 10) return { ok: true, message: 'Formato plausível' };
+      return { ok: false, message: 'Formato inválido' };
+    };
+
+    const result = {
+      google_ads: validateGoogle(),
+      instagram: validateInstagram(),
+      whatsapp: validateWhatsapp(),
+    };
+
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Erro ao validar chaves:', error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
+  }
+});
+
+/**
  * Obter dados do usuário e chaves
  */
 app.get('/keys/meus-dados', authenticateToken, async (req: AuthRequest, res: Response) => {
@@ -342,19 +385,19 @@ app.post('/campaigns/criar', authenticateToken, async (req: AuthRequest, res: Re
       });
     }
 
-    const { nome, descricao, tipo, plataforma, orcamento } = req.body;
+    const { titulo, descricao, tipo, plataforma, orcamento } = req.body;
 
-    if (!nome) {
+    if (!titulo) {
       return res.status(400).json({
         success: false,
-        message: 'Nome da campanha é obrigatório',
+        message: 'Título da campanha é obrigatório',
       });
     }
 
     const campaignId = crypto.randomUUID();
     await pool.query(
-      'INSERT INTO campaigns (id, user_id, nome, descricao, tipo, plataforma, orcamento, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [campaignId, req.user.id, nome, descricao, tipo, plataforma, orcamento || 0, 'rascunho']
+      'INSERT INTO campaigns (id, user_id, titulo, descricao, tipo, plataforma, orcamento, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [campaignId, req.user.id, titulo, descricao, tipo, plataforma, orcamento || 0, 'rascunho']
     );
 
     return res.json({
