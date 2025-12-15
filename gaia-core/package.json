@@ -1,0 +1,9 @@
+{
+  "name": "gaia-core",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist && cp -R src/* dist/ || true",
+    "start": "npx http-server dist -p 80"
+  }
+}

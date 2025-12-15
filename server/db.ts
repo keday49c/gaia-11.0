@@ -1,9 +1,14 @@
 import { Pool } from 'pg';
+import bcrypt from 'bcryptjs';
 
 // Configurar conexão com PostgreSQL
+const useSSL = typeof process.env.DB_SSL !== 'undefined'
+  ? (process.env.DB_SSL === 'true')
+  : (process.env.NODE_ENV === 'production');
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://gaia_user:gaia_password@postgres:5432/gaia_db',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: useSSL ? { rejectUnauthorized: false } : false,
 });
 
 // Event handlers para pool
@@ -25,7 +30,7 @@ export const initializeDatabase = async () => {
     // Tabela de usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         email VARCHAR(255) UNIQUE NOT NULL,
         senha VARCHAR(255) NOT NULL,
         nome VARCHAR(255),
@@ -41,7 +46,7 @@ export const initializeDatabase = async () => {
     // Tabela de campanhas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS campaigns (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         nome VARCHAR(255) NOT NULL,
         descricao TEXT,
@@ -66,7 +71,7 @@ export const initializeDatabase = async () => {
     // Tabela de métricas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS metrics (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
         data DATE NOT NULL,
         cliques INTEGER DEFAULT 0,
@@ -82,7 +87,7 @@ export const initializeDatabase = async () => {
     // Tabela de logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
         acao VARCHAR(255) NOT NULL,
         detalhes TEXT,
@@ -93,17 +98,13 @@ export const initializeDatabase = async () => {
     console.log('✅ Tabela "logs" pronta');
 
     // Seed usuário padrão se não existir
-    const existingUser = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
-      ['admin@gaia.local']
-    );
+    const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', ['admin@gaia.local']);
 
     if (existingUser.rows.length === 0) {
-      await pool.query(
-        `INSERT INTO users (email, senha, nome) VALUES ($1, $2, $3)`,
-        ['admin@gaia.local', 'senha123', 'Administrador']
-      );
-      console.log('✅ Usuário padrão criado: admin@gaia.local / senha123');
+      // default admin password (hashed)
+      const hashed = await bcrypt.hash('senha123', 10);
+      await pool.query(`INSERT INTO users (email, senha, nome) VALUES ($1, $2, $3)`, ['admin@gaia.local', hashed, 'Administrador']);
+      console.log('✅ Usuário padrão criado: admin@gaia.local / (senha hasheada)');
     } else {
       console.log('✅ Usuário padrão já existe no banco de dados');
     }

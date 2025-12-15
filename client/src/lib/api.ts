@@ -2,6 +2,9 @@
  * Serviço de API para comunicação com o backend Gaia
  */
 
+// Default to a relative `/api` path. The frontend image's Nginx will proxy
+// `/api` to the backend service inside the Docker network. Set `VITE_API_URL`
+// at build time to override in non-proxy setups.
 export const API_URL = import.meta.env.VITE_API_URL || '/api';
 const API_BASE_URL = API_URL;
 
@@ -98,12 +101,32 @@ export async function saveApiKeys(
   instagram?: string,
   whatsapp?: string
 ): Promise<ApiResponse<{ userId: string; email: string }>> {
+  // Envia os nomes de campo esperados pelo backend
   return apiRequest('/keys/salvar', {
     method: 'POST',
     body: JSON.stringify({
-      google_ads,
-      instagram,
-      whatsapp,
+      google_ads_key: google_ads,
+      instagram_token: instagram,
+      whatsapp_token: whatsapp,
+    }),
+  });
+}
+
+/**
+ * Valida chaves no backend (POC). O endpoint faz validações básicas/simuladas
+ * e retorna um objeto com o status de cada provedor.
+ */
+export async function validateApiKeys(
+  google_ads?: string,
+  instagram?: string,
+  whatsapp?: string
+): Promise<ApiResponse<{ google_ads: { ok: boolean; message?: string }, instagram: { ok: boolean; message?: string }, whatsapp: { ok: boolean; message?: string } }>> {
+  return apiRequest('/keys/validate', {
+    method: 'POST',
+    body: JSON.stringify({
+      google_ads_key: google_ads,
+      instagram_token: instagram,
+      whatsapp_token: whatsapp,
     }),
   });
 }

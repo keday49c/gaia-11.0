@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useState, useEffect } from "react";
@@ -18,15 +18,23 @@ function Router({
   onLogin,
   onLogout,
   showWelcome,
+  onHideWelcome,
 }: {
   isLoggedIn: boolean;
   isAdmin: boolean;
   onLogin: () => void;
   onLogout: () => void;
+  onHideWelcome: () => void;
   showWelcome: boolean;
 }) {
+  const [location] = useLocation();
+
+  // Always allow explicit /welcome route to show the Welcome page
+  if (location === '/welcome') {
+    return <Welcome onLogin={onLogin} onHideWelcome={onHideWelcome} />;
+  }
   if (showWelcome) {
-    return <Welcome />;
+    return <Welcome onLogin={onLogin} onHideWelcome={onHideWelcome} />;
   }
 
   if (!isLoggedIn) {
@@ -52,6 +60,15 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+
+  const hideWelcome = () => {
+    try {
+      localStorage.setItem('gaia_welcome_shown', 'true');
+    } catch (e) {
+      // ignore
+    }
+    setShowWelcome(false);
+  };
 
   useEffect(() => {
     const adminMode = localStorage.getItem("gaia_admin") === "true";
@@ -96,6 +113,7 @@ function App() {
             onLogin={handleLogin}
             onLogout={handleLogout}
             showWelcome={showWelcome}
+            onHideWelcome={hideWelcome}
           />
         </TooltipProvider>
       </ThemeProvider>

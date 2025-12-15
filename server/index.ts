@@ -26,7 +26,9 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Rate limiter for auth endpoints
-const authLimiter = rateLimit({
+// Some @types versions don't include `standardHeaders`/`legacyHeaders` fields.
+// Cast the factory to `any` so TypeScript won't error while preserving runtime behavior.
+const authLimiter = (rateLimit as any)({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // limit each IP to 10 requests per windowMs
   standardHeaders: true,
@@ -127,8 +129,8 @@ app.post('/auth/login', async (req: Request, res: Response) => {
         email: user.email,
       },
     });
-  } catch (error) {
-    console.error('Erro no login:', error);
+  } catch (error: any) {
+    console.error('Erro no login:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -171,8 +173,8 @@ app.post('/auth/register', authLimiter, async (req: Request, res: Response) => {
         email,
       },
     });
-  } catch (error) {
-    console.error('Erro no registro:', error);
+  } catch (error: any) {
+    console.error('Erro no registro:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -226,8 +228,8 @@ app.post('/keys/salvar', authenticateToken, async (req: AuthRequest, res: Respon
         email: req.user.email,
       },
     });
-  } catch (error) {
-    console.error('Erro ao salvar chaves:', error);
+  } catch (error: any) {
+    console.error('Erro ao salvar chaves:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -269,8 +271,8 @@ app.post('/keys/validate', authenticateToken, async (req: AuthRequest, res: Resp
     };
 
     return res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('Erro ao validar chaves:', error);
+  } catch (error: any) {
+    console.error('Erro ao validar chaves:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -328,8 +330,8 @@ app.get('/keys/meus-dados', authenticateToken, async (req: AuthRequest, res: Res
         },
       },
     });
-  } catch (error) {
-    console.error('Erro ao buscar dados:', error);
+  } catch (error: any) {
+    console.error('Erro ao buscar dados:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -359,12 +361,18 @@ app.get('/campaigns/lista', authenticateToken, async (req: AuthRequest, res: Res
       [req.user.id]
     );
 
+    // Normalize numeric fields returned by Postgres (numeric/decimal often comes as string)
+    const normalized = result.rows.map((r: any) => ({
+      ...r,
+      orcamento: typeof r.orcamento === 'string' ? Number(r.orcamento) : r.orcamento,
+    }));
+
     return res.json({
       success: true,
-      data: result.rows,
+      data: normalized,
     });
-  } catch (error) {
-    console.error('Erro ao listar campanhas:', error);
+  } catch (error: any) {
+    console.error('Erro ao listar campanhas:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -385,19 +393,21 @@ app.post('/campaigns/criar', authenticateToken, async (req: AuthRequest, res: Re
       });
     }
 
-    const { titulo, descricao, tipo, plataforma, orcamento } = req.body;
+    // Accept both `nome` (new) and `titulo` (legacy) from older clients
+    const nome = req.body.nome || req.body.titulo || req.body.title || '';
+    const { descricao, tipo, plataforma, orcamento } = req.body;
 
-    if (!titulo) {
+    if (!nome) {
       return res.status(400).json({
         success: false,
-        message: 'Título da campanha é obrigatório',
+        message: 'Nome da campanha é obrigatório',
       });
     }
 
     const campaignId = crypto.randomUUID();
     await pool.query(
-      'INSERT INTO campaigns (id, user_id, titulo, descricao, tipo, plataforma, orcamento, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [campaignId, req.user.id, titulo, descricao, tipo, plataforma, orcamento || 0, 'rascunho']
+      'INSERT INTO campaigns (id, user_id, nome, descricao, tipo, plataforma, orcamento, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [campaignId, req.user.id, nome, descricao, tipo, plataforma, orcamento || 0, 'rascunho']
     );
 
     return res.json({
@@ -406,15 +416,16 @@ app.post('/campaigns/criar', authenticateToken, async (req: AuthRequest, res: Re
       data: {
         id: campaignId,
         nome,
+        titulo: nome, // legacy compatibility
         descricao,
         tipo,
         plataforma,
-        orcamento,
+        orcamento: typeof orcamento === 'string' ? Number(orcamento) : orcamento || 0,
         status: 'rascunho',
       },
     });
-  } catch (error) {
-    console.error('Erro ao criar campanha:', error);
+  } catch (error: any) {
+    console.error('Erro ao criar campanha:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -435,7 +446,8 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
       });
     }
 
-    const { campaignId } = req.body;
+    // Accept multiple possible property names for compatibility with older clients
+    const campaignId = req.body.campaignId || req.body.campaign_id || req.body.id || req.body.campaignId;
 
     if (!campaignId) {
       return res.status(400).json({
@@ -459,8 +471,8 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
         disparoEm: new Date().toISOString(),
       },
     });
-  } catch (error) {
-    console.error('Erro ao disparar campanha:', error);
+  } catch (error: any) {
+    console.error('Erro ao disparar campanha:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });
@@ -501,15 +513,28 @@ app.get('/campaigns/:campaignId/metricas', authenticateToken, async (req: AuthRe
       [campaignId]
     );
 
+    // Normalize numeric fields (Postgres numeric/decimal may be returned as strings)
+    const metricas = result.rows.map((m: any) => ({
+      ...m,
+      impressoes: Number(m.impressoes) || 0,
+      cliques: Number(m.cliques) || 0,
+      conversoes: Number(m.conversoes) || 0,
+      custo: typeof m.custo === 'string' ? Number(m.custo) : m.custo || 0,
+      receita: typeof m.receita === 'string' ? Number(m.receita) : m.receita || 0,
+      cpc: typeof m.cpc === 'string' ? Number(m.cpc) : m.cpc,
+      ctr: typeof m.ctr === 'string' ? Number(m.ctr) : m.ctr,
+      roas: typeof m.roas === 'string' ? Number(m.roas) : m.roas,
+    }));
+
     return res.json({
       success: true,
       data: {
         campaignId,
-        metricas: result.rows,
+        metricas,
       },
     });
-  } catch (error) {
-    console.error('Erro ao buscar métricas:', error);
+  } catch (error: any) {
+    console.error('Erro ao buscar métricas:', error?.message ?? error);
     return res.status(500).json({ success: false, message: 'Erro no servidor' });
   }
 });

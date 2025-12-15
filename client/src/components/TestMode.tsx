@@ -7,7 +7,8 @@ import { API_URL } from '@/lib/api';
 interface TestCampaign {
   id: string;
   titulo: string;
-  orcamento: number;
+  // accept string|number because server/test helpers may return decimals as strings
+  orcamento: number | string;
   metricas_simuladas: any;
   criado_em: string;
 }
@@ -190,11 +191,17 @@ export default function TestMode() {
             </div>
             <div>
               <p className="text-gray-600">Custo</p>
-              <p className="text-lg font-bold text-green-700">R$ {resultado.metricas.custo.toFixed(2)}</p>
+              <p className="text-lg font-bold text-green-700">R$ {(() => {
+                const v = Number(resultado.metricas.custo);
+                return isNaN(v) ? '0.00' : v.toFixed(2);
+              })()}</p>
             </div>
             <div>
               <p className="text-gray-600">Receita</p>
-              <p className="text-lg font-bold text-green-700">R$ {resultado.metricas.receita.toFixed(2)}</p>
+              <p className="text-lg font-bold text-green-700">R$ {(() => {
+                const v = Number(resultado.metricas.receita);
+                return isNaN(v) ? '0.00' : v.toFixed(2);
+              })()}</p>
             </div>
             <div>
               <p className="text-gray-600">ROAS</p>
@@ -213,7 +220,10 @@ export default function TestMode() {
                 <div>
                   <p className="font-medium text-gray-800">{campaign.titulo}</p>
                   <p className="text-sm text-gray-500">
-                    Orçamento: R$ {campaign.orcamento.toFixed(2)} • {new Date(campaign.criado_em).toLocaleDateString('pt-BR')}
+                    Orçamento: R$ {(() => {
+                      const v = Number(campaign.orcamento);
+                      return isNaN(v) ? '0.00' : v.toFixed(2);
+                    })()} • {new Date(campaign.criado_em).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <Button

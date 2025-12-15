@@ -72,11 +72,28 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
       setSuccess(true);
       setLoading(false);
-      
-      // Aguardar 2 segundos e redirecionar
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
+
+      // Após salvar, tentar validar as chaves (POC).
+      try {
+        // importar dinamicamente para evitar loop de dependência no topo
+        const { validateApiKeys } = await import('@/lib/api');
+        const validation = await validateApiKeys(googleAdsKey, instagramKey, whatsappKey);
+
+        // Se validou pelo menos um provedor, redirecionar para campanhas
+        const okGoogle = validation.data?.google_ads?.ok;
+        const okInstagram = validation.data?.instagram?.ok;
+        const okWhatsapp = validation.data?.whatsapp?.ok;
+
+        if (validation.success && (okGoogle || okInstagram || okWhatsapp)) {
+          setTimeout(() => window.location.href = '/campanhas', 1200);
+        } else {
+          // Nenhuma validação retornou OK — permanecer no dashboard e informar
+          alert('Chaves salvas, mas nenhuma validação automática retornou OK. Verifique suas chaves reais se necessário.');
+        }
+      } catch (err) {
+        console.error('Erro na validação das chaves:', err);
+        // Mesmo se a validação falhar, mantemos as chaves salvas.
+      }
     } catch (err) {
       console.error('Erro ao salvar:', err);
       setError('Erro ao salvar chaves. Tente novamente.');

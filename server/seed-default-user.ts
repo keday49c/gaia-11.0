@@ -1,4 +1,4 @@
-import pool from './db';
+import pool from './db.js';
 
 /**
  * Script para inserir usuário padrão no banco de dados
@@ -42,8 +42,8 @@ const seedDefaultUser = async () => {
     console.log('\n✅ Seed concluído com sucesso!');
 
     process.exit(0);
-  } catch (error) {
-    console.error('❌ Erro ao fazer seed:', error);
+  } catch (error: any) {
+    console.error('❌ Erro ao fazer seed:', error?.message ?? error);
     process.exit(1);
   }
 };

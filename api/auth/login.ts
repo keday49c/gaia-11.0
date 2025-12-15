@@ -1,10 +1,11 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gaia-secret-key-2025';
 
 // Usuários de teste (em produção, usar banco de dados)
-const TEST_USERS = [
+const RAW_TEST_USERS = [
   {
     id: 'user-001',
     email: 'admin',
@@ -19,7 +20,10 @@ const TEST_USERS = [
   },
 ];
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+// Armazenar versões com senhas hasheadas
+const TEST_USERS = RAW_TEST_USERS.map(u => ({ ...u, senha: bcrypt.hashSync(u.senha, 10) }));
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Método não permitido' });
   }
@@ -35,9 +39,17 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Buscar usuário (em produção, buscar no banco de dados)
-    const user = TEST_USERS.find(u => u.email === email && u.senha === senha);
+    const user = TEST_USERS.find(u => u.email === email);
 
     if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou senha inválidos',
+      });
+    }
+
+    const match = await bcrypt.compare(senha, user.senha);
+    if (!match) {
       return res.status(401).json({
         success: false,
         message: 'Email ou senha inválidos',

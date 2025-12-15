@@ -1,44 +1,44 @@
 # Build stage
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
-# Copy server package files
+# Copy only package files to leverage cache
 COPY server/package.json server/package-lock.json* ./
-
-# Install dependencies
 RUN npm install
 
-# Copy TypeScript source files
+# Copy TypeScript sources and tsconfig
 COPY server/*.ts ./
-
-# Copy tsconfig
 COPY server/tsconfig.json ./
 
-# Build TypeScript
+# Build TypeScript (produces ./dist)
 RUN npm run build
 
+# Debug listing (opcional) — mostra o conteúdo de /app/dist no log do build
+RUN echo "--- Conteúdo de /app/dist (após build) ---" && ls -la /app/dist || true && echo "--- Conteúdo de /app/dist/public (após build) ---" && ls -la /app/dist/public || true
+
 # Runtime stage
-FROM node:20-alpine
-
+FROM node:20-alpine AS runtime
 WORKDIR /app
-
-# Copy server package files
 COPY server/package.json server/package-lock.json* ./
-
-# Install production dependencies only
 RUN npm install --production
 
-# Copy built application from builder
+# Copy build artifacts from builder
 COPY --from=builder /app/dist ./dist
 
-# Expose port
+# Copy helper script to wait for DB and make it executable
+COPY scripts/wait-for-db.sh /usr/local/bin/wait-for-db.sh
+RUN chmod +x /usr/local/bin/wait-for-db.sh || true
+
+# Install postgres client so wait-for-db.sh can test readiness
+RUN apk add --no-cache postgresql-client
+
+# Create a non-root user to run the application
+RUN addgroup -S gaia && adduser -S -G gaia gaia || true
+RUN chown -R gaia:gaia /app || true
+
+# Expose port and start (entrypoint waits for DB then starts node)
 EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
-
-# Start application
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["/usr/local/bin/wait-for-db.sh"]
+# run as non-root user (will execute node via wait-for-db)
+USER gaia
 

@@ -1,0 +1,15 @@
+*** Begin Patch
+*** Update File: server/index.ts
+@@
+-import pool, { initializeDatabase } from './db';
+-import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys';
++import pool, { initializeDatabase } from './db.js';
++import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys.js';
+*** End Patch
+*** Begin Patch
+*** Update File: server/seed-default-user.ts
+@@
+-import pool from './db';
++import pool from './db.js';
+*** End Patch
+*** End Patch

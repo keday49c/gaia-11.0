@@ -1,4 +1,5 @@
--- Criar extensão UUID
+-- Criar extensões necessárias
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Tabela de usuários
@@ -6,7 +7,11 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email VARCHAR(255) UNIQUE NOT NULL,
   senha VARCHAR(255) NOT NULL,
-  chaves_api JSONB DEFAULT '{"google_ads": null, "instagram": null, "whatsapp": null}',
+  nome VARCHAR(255),
+  google_ads_key VARCHAR(500),
+  instagram_token VARCHAR(500),
+  whatsapp_token VARCHAR(500),
+  chaves_api JSONB DEFAULT '{"whatsapp": null, "instagram": null, "google_ads": null}',
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

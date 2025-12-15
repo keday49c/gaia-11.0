@@ -4,11 +4,12 @@ import { API_URL } from '@/lib/api';
 
 interface Metric {
   plataforma: string;
-  impressoes: number;
-  cliques: number;
-  conversoes: number;
-  custo: number;
-  receita: number;
+  // some numeric fields may be returned as strings from the server/PG
+  impressoes: number | string;
+  cliques: number | string;
+  conversoes: number | string;
+  custo: number | string;
+  receita: number | string;
 }
 
 interface ReportProps {
@@ -56,14 +57,22 @@ export default function Reports({ campaignId }: ReportProps) {
     }
   };
 
+  // normalize numeric fields to numbers for safe arithmetic
   const totalMetrics = metrics.reduce(
-    (acc, m) => ({
-      impressoes: acc.impressoes + m.impressoes,
-      cliques: acc.cliques + m.cliques,
-      conversoes: acc.conversoes + m.conversoes,
-      custo: acc.custo + m.custo,
-      receita: acc.receita + m.receita,
-    }),
+    (acc, m) => {
+      const imp = Number(m.impressoes) || 0;
+      const cli = Number(m.cliques) || 0;
+      const conv = Number(m.conversoes) || 0;
+      const cost = Number(m.custo) || 0;
+      const rev = Number(m.receita) || 0;
+      return {
+        impressoes: acc.impressoes + imp,
+        cliques: acc.cliques + cli,
+        conversoes: acc.conversoes + conv,
+        custo: acc.custo + cost,
+        receita: acc.receita + rev,
+      };
+    },
     { impressoes: 0, cliques: 0, conversoes: 0, custo: 0, receita: 0 }
   );
 
@@ -128,7 +137,7 @@ export default function Reports({ campaignId }: ReportProps) {
               <KPICard
                 icon={DollarSign}
                 label="Custo"
-                value={`R$ ${totalMetrics.custo.toFixed(2)}`}
+                value={`R$ ${Number(totalMetrics.custo).toFixed(2)}`}
                 trend={-5}
               />
               <KPICard
@@ -140,7 +149,7 @@ export default function Reports({ campaignId }: ReportProps) {
               <KPICard
                 icon={DollarSign}
                 label="Receita"
-                value={`R$ ${totalMetrics.receita.toFixed(2)}`}
+                value={`R$ ${Number(totalMetrics.receita).toFixed(2)}`}
                 trend={20}
               />
             </div>
@@ -189,8 +198,8 @@ export default function Reports({ campaignId }: ReportProps) {
                       <div className="grid grid-cols-4 gap-2 mt-2 text-xs text-gray-600">
                         <span>Cliques: {metric.cliques}</span>
                         <span>Conversões: {metric.conversoes}</span>
-                        <span>Custo: R$ {metric.custo.toFixed(2)}</span>
-                        <span>Receita: R$ {metric.receita.toFixed(2)}</span>
+                        <span>Custo: R$ {(() => { const v = Number(metric.custo); return isNaN(v) ? '0.00' : v.toFixed(2); })()}</span>
+                        <span>Receita: R$ {(() => { const v = Number(metric.receita); return isNaN(v) ? '0.00' : v.toFixed(2); })()}</span>
                       </div>
                     </div>
                   );
@@ -218,8 +227,8 @@ export default function Reports({ campaignId }: ReportProps) {
                       <td className="px-6 py-4 text-sm text-gray-600">{metric.impressoes.toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{metric.cliques.toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{metric.conversoes.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">R$ {metric.custo.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">R$ {metric.receita.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">R$ {(() => { const v = Number(metric.custo); return isNaN(v) ? '0.00' : v.toFixed(2); })()}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">R$ {(() => { const v = Number(metric.receita); return isNaN(v) ? '0.00' : v.toFixed(2); })()}</td>
                     </tr>
                   ))}
                 </tbody>

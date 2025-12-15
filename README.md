@@ -1,3 +1,68 @@
+# Gaia (local setup)
+
+Instruções rápidas para rodar o backend e frontend localmente (Docker ou local).
+
+Pré-requisitos
+- Node.js 20+
+- npm 10+
+- Docker (opcional, recomendado)
+
+Usando Docker (recomendado)
+
+1. Na raiz do projeto:
+
+```powershell
+docker-compose up --build
+```
+
+Isso sobe o Postgres (5432), backend (3001) e frontend (3000).
+
+Usando local (sem Docker)
+
+1. Instalar dependências na raiz (workspaces):
+
+```powershell
+npm install
+```
+
+2. Rodar backend:
+
+```powershell
+npm run server:dev
+```
+
+3. Rodar frontend:
+
+```powershell
+npm run dev
+```
+
+Setar senha de usuário diretamente no banco
+
+Você pediu para criar/definir a conta:
+
+- Email: `davidcruner@gmail.com`
+- Senha: `123456`
+
+Para aplicar essa senha ao banco (se estiver usando o banco do docker ou local), execute este comando a partir da raiz do repositório:
+
+```powershell
+# usando tsx (server tem script npm para isso)
+npm run server:dev # (em outro terminal, mantê-lo rodando não é estritamente necessário)
+npm --prefix server run set-password -- --email davidcruner@gmail.com --password 123456
+
+# ou, usando tsx direto se você tiver instalado:
+npx tsx server/scripts/set_password.ts --email davidcruner@gmail.com --password 123456
+```
+
+Notas de segurança
+- Altere `JWT_SECRET` e `AES_SECRET_KEY` antes de colocar em produção.
+- Não use senhas fracas em produção; este exemplo usa `123456` por pedido de teste.
+
+O que foi adicionado/alterado
+- `server/scripts/set_password.ts` - script para set/reset de senha (usa bcrypt e atualiza/insera usuário).
+- `server/index.ts` - adicionada validação (`zod`) e rate-limiting (`express-rate-limit`) nos endpoints de auth.
+- `.env.example` e `README.md` com instruções.
 # Gaia 10.0 - Esqueleto Frontend
 
 **Gaia** é uma plataforma pessoal de automação de marketing digital que permite criar campanhas, publicar em tempo real no Google Ads, Instagram, TikTok, gerenciar conversas no WhatsApp por voz e analisar tudo com IA Gemini. Roda no PC ou no celular, sem servidor obrigatório.

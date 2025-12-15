@@ -7,7 +7,9 @@ import { API_URL } from '@/lib/api';
 interface Campaign {
   id: string;
   titulo: string;
-  orcamento: number;
+  // PG numeric/decimal may be returned as string from the driver,
+  // accept both numbers and strings here.
+  orcamento: number | string;
   status: string;
   plataformas: any;
   criado_em: string;
@@ -57,6 +59,9 @@ export default function Campaigns() {
       console.error('Erro ao carregar campanhas:', err);
     }
   };
+
+  // Detect if current user is in visitor mode (set by Welcome.tsx)
+  const isGuest = typeof window !== 'undefined' && localStorage.getItem('gaia_isGuest') === 'true';
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,7 +295,10 @@ export default function Campaigns() {
 
               <div className="mb-4 p-3 bg-gray-50 rounded">
                 <p className="text-sm text-gray-600">
-                  <strong>Orçamento:</strong> R$ {campaign.orcamento.toFixed(2)}
+                  <strong>Orçamento:</strong> R$ {(() => {
+                    const val = Number(campaign.orcamento);
+                    return isNaN(val) ? '0.00' : val.toFixed(2);
+                  })()}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
                   <strong>Plataformas:</strong>{' '}
@@ -301,7 +309,7 @@ export default function Campaigns() {
               </div>
 
               <div className="flex gap-2">
-                {campaign.status === 'rascunho' && (
+                {campaign.status === 'rascunho' && !isGuest && (
                   <Button
                     onClick={() => handleDispararCampanha(campaign.id)}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
@@ -309,6 +317,15 @@ export default function Campaigns() {
                   >
                     <Zap size={18} />
                     Disparar
+                  </Button>
+                )}
+                {campaign.status === 'rascunho' && isGuest && (
+                  <Button
+                    className="flex-1 bg-gray-300 text-gray-700 flex items-center justify-center gap-2"
+                    disabled
+                  >
+                    <Zap size={18} />
+                    Disparar (modo visitante desabilitado)
                   </Button>
                 )}
                 <Button

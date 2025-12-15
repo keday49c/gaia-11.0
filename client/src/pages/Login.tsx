@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -10,6 +11,7 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
+  const [, setLocation] = useLocation();
   const [isSettingPassword, setIsSettingPassword] = useState(!isPasswordSet());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -122,6 +124,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#001F3F] to-[#2ECC40] flex flex-col items-center justify-center p-4">
+      {/* Back button */}
+      <div className="w-full max-w-md mb-4">
+        <button
+          type="button"
+          onClick={() => setLocation('/welcome')}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          ← Voltar
+        </button>
+      </div>
       {/* Alert Bar */}
       {error && (
         <div className="fixed top-0 left-0 right-0 bg-[#FF4136] text-white px-4 py-3 flex items-center gap-2 z-50">

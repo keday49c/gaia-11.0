@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gaia-secret-key-2025';
 
@@ -12,7 +13,7 @@ let registeredUsers: Array<{
   nome: string;
 }> = [];
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Método não permitido' });
   }
@@ -35,12 +36,13 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Criar novo usuário
+    // Criar novo usuário (hash da senha)
     const userId = crypto.randomUUID();
+    const hashedSenha = await bcrypt.hash(senha, 10);
     const newUser = {
       id: userId,
       email,
-      senha,
+      senha: hashedSenha,
       nome: nome || 'Usuário',
     };
 

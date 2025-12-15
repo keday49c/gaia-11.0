@@ -4,7 +4,7 @@ import { saveToken } from '@/lib/api';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
-export default function Welcome() {
+export default function Welcome({ onLogin, onHideWelcome }: { onLogin?: () => void; onHideWelcome?: () => void }) {
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState<'guest' | 'login' | null>(null);
 
@@ -23,8 +23,13 @@ export default function Welcome() {
 
       if (data.success && data.data?.token) {
         saveToken(data.data.token);
-        // Redirecionar para dashboard
-        setLocation('/dashboard');
+        try { localStorage.setItem('gaia_isGuest', 'true'); } catch(e) {}
+        // Notifica o App que houve login (atualiza estado global local)
+        if (onLogin) onLogin();
+        try { localStorage.setItem('gaia_welcome_shown', 'true'); } catch(e){}
+        if (onHideWelcome) onHideWelcome();
+        // Redirecionar para a rota principal (Dashboard está em `/`)
+        setLocation('/');
       } else {
         alert('Erro ao acessar modo visitante');
       }
@@ -38,6 +43,8 @@ export default function Welcome() {
 
   const handleLoginReal = () => {
     setLoading('login');
+    try { localStorage.setItem('gaia_welcome_shown', 'true'); localStorage.setItem('gaia_isGuest', 'false'); } catch(e){}
+    if (onHideWelcome) onHideWelcome();
     // Redirecionar para página de login
     setLocation('/login');
   };
