@@ -12,6 +12,18 @@ export async function createGoogleAdsCampaign(campaign: any, token?: string, cus
     throw new Error('GOOGLE_ADS_TOKEN or GOOGLE_ADS_CUSTOMER_ID not configured (provide token and customerId or set env vars)');
   }
 
+  // If a TEST_ key is provided, simulate a successful response so local tests
+  // can run without real API credentials or network calls.
+  if (String(GOOGLE_ADS_TOKEN).startsWith('TEST_')) {
+    console.log('ℹ️ Google Ads TEST key detected; simulating campaign creation');
+    return {
+      resourceName: `customers/${GOOGLE_ADS_CUSTOMER_ID}/campaigns/TEST-${Date.now()}`,
+      name: campaign.nome || campaign.titulo || 'Gaia Campaign',
+      status: 'PAUSED',
+      simulated: true,
+    } as any;
+  }
+
   // NOTE: This is still a minimal placeholder implementation. A production version
   // should implement Google Ads API client with proper field mappings and error handling.
   const url = `https://googleads.googleapis.com/v14/customers/${GOOGLE_ADS_CUSTOMER_ID}/campaigns`;
