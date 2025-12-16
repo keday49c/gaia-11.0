@@ -48,6 +48,8 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL}
       - GEMINI_MODEL=${GEMINI_MODEL}
+      - GOOGLE_ADS_TOKEN=${GOOGLE_ADS_TOKEN}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
     volumes:
       - sqlite_data:/data
     ports:
@@ -120,6 +122,8 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL}
       - GEMINI_MODEL=${GEMINI_MODEL}
+      - GOOGLE_ADS_TOKEN=${GOOGLE_ADS_TOKEN}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
     volumes:
       - sqlite_data:/data
     depends_on:

@@ -226,6 +226,7 @@ Content-Type: application/json
 
 {
   "google_ads_key": "sua-chave-aqui",
+  "google_ads_customer_id": "seu-customer-id-aqui",
   "instagram_token": "seu-token-aqui",
   "whatsapp_token": "seu-token-aqui"
 }

@@ -60,6 +60,7 @@ if ($ApplyDbFix) {
   docker exec -i gaia-postgres psql -U gaia_user -d gaia_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
   docker exec -i gaia-postgres psql -U gaia_user -d gaia_db -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS nome VARCHAR(255);"
   docker exec -i gaia-postgres psql -U gaia_user -d gaia_db -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_ads_key VARCHAR(500);"
+  docker exec -i gaia-postgres psql -U gaia_user -d gaia_db -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_ads_customer_id VARCHAR(100);"
   docker exec -i gaia-postgres psql -U gaia_user -d gaia_db -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_token VARCHAR(500);"
   docker exec -i gaia-postgres psql -U gaia_user -d gaia_db -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_token VARCHAR(500);"
 }

@@ -88,6 +88,7 @@ export const initializeDatabase = async () => {
           senha TEXT NOT NULL,
           nome TEXT,
           google_ads_key TEXT,
+          google_ads_customer_id TEXT,
           instagram_token TEXT,
           whatsapp_token TEXT,
           criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -102,6 +103,7 @@ export const initializeDatabase = async () => {
           senha VARCHAR(255) NOT NULL,
           nome VARCHAR(255),
           google_ads_key VARCHAR(500),
+          google_ads_customer_id VARCHAR(100),
           instagram_token VARCHAR(500),
           whatsapp_token VARCHAR(500),
           criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,6 +112,20 @@ export const initializeDatabase = async () => {
       `);
     }
     console.log('✅ Tabela "users" pronta');
+
+    // Ensure per-user google_ads_customer_id column exists (idempotent for Postgres; ignored on SQLite if fails)
+    try {
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_ads_customer_id VARCHAR(100);");
+      console.log('✅ Coluna "google_ads_customer_id" garantida (se aplicável)');
+    } catch (colErr) {
+      // SQLite doesn't support IF NOT EXISTS for columns; ignore errors
+      try {
+        await pool.query("ALTER TABLE users ADD COLUMN google_ads_customer_id VARCHAR(100);");
+        console.log('✅ Coluna "google_ads_customer_id" adicionada');
+      } catch (e) {
+        // ignore if column exists or operation not supported
+      }
+    }
 
     // Tabela de análises (resultados de IA)
     if ((process.env.DATABASE || '').toLowerCase() === 'sqlite') {

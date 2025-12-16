@@ -213,12 +213,12 @@ app.post('/keys/salvar', authenticateToken, async (req: AuthRequest, res: Respon
       return res.status(401).json({ success: false, message: 'Não autenticado' });
     }
 
-    const { google_ads_key, instagram_token, whatsapp_token } = req.body;
+    const { google_ads_key, google_ads_customer_id, instagram_token, whatsapp_token } = req.body;
 
-    // Atualizar chaves no banco
+    // Atualizar chaves no banco (inclui customer id)
     await pool.query(
-      'UPDATE users SET google_ads_key = $1, instagram_token = $2, whatsapp_token = $3, atualizado_em = CURRENT_TIMESTAMP WHERE id = $4',
-      [google_ads_key, instagram_token, whatsapp_token, req.user.id]
+      'UPDATE users SET google_ads_key = $1, google_ads_customer_id = $2, instagram_token = $3, whatsapp_token = $4, atualizado_em = CURRENT_TIMESTAMP WHERE id = $5',
+      [google_ads_key, google_ads_customer_id, instagram_token, whatsapp_token, req.user.id]
     );
 
     return res.json({
@@ -251,6 +251,12 @@ app.post('/keys/validate', authenticateToken, async (req: AuthRequest, res: Resp
       return { ok: false, message: 'Formato inválido' };
     };
 
+    const validateGoogleCustomer = () => {
+      if (!google_ads_customer_id) return { ok: false, message: 'Vazio' };
+      if (/^\d{6,20}$/.test(String(google_ads_customer_id))) return { ok: true, message: 'Formato plausível' };
+      return { ok: false, message: 'Formato inválido (deve ser numérico)' };
+    };
+
     const validateInstagram = () => {
       if (!instagram_token) return { ok: false, message: 'Vazio' };
       if (String(instagram_token).startsWith('TEST_')) return { ok: true, message: 'TEST token accepted' };
@@ -267,6 +273,7 @@ app.post('/keys/validate', authenticateToken, async (req: AuthRequest, res: Resp
 
     const result = {
       google_ads: validateGoogle(),
+      google_ads_customer_id: validateGoogleCustomer(),
       instagram: validateInstagram(),
       whatsapp: validateWhatsapp(),
     };
@@ -321,6 +328,7 @@ app.get('/keys/meus-dados', authenticateToken, async (req: AuthRequest, res: Res
         },
         chaves: {
           google_ads: user.google_ads_key || null,
+          google_ads_customer_id: user.google_ads_customer_id || null,
           instagram: user.instagram_token || null,
           whatsapp: user.whatsapp_token || null,
         },

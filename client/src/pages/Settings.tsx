@@ -15,9 +15,11 @@ export default function Settings() {
   // Chaves de API
   const [keys, setKeys] = useState({
     google_ads: '',
+    google_ads_customer_id: '',
     instagram: '',
     whatsapp: '',
   });
+
 
   // Chaves de teste
   const [testKeys, setTestKeys] = useState({
@@ -44,6 +46,7 @@ export default function Settings() {
       if (data.success) {
         setKeys({
           google_ads: data.data.chaves.google_ads || '',
+          google_ads_customer_id: data.data.chaves.google_ads_customer_id || '',
           instagram: data.data.chaves.instagram || '',
           whatsapp: data.data.chaves.whatsapp || '',
         });
@@ -75,6 +78,7 @@ export default function Settings() {
         },
         body: JSON.stringify({
           google_ads_key: keys.google_ads,
+          google_ads_customer_id: keys.google_ads_customer_id,
           instagram_token: keys.instagram,
           whatsapp_token: keys.whatsapp,
         }),
@@ -163,6 +167,19 @@ export default function Settings() {
               <p className="text-xs text-gray-500">
                 Obtenha em: https://console.cloud.google.com
               </p>
+
+              <div className="space-y-3 mt-3">
+                <label className="block text-sm font-semibold text-gray-900">
+                  🆔 Google Ads Customer ID
+                </label>
+                <Input
+                  placeholder="Insira seu Customer ID (ex: 1234567890)"
+                  value={keys.google_ads_customer_id}
+                  onChange={e => setKeys({ ...keys, google_ads_customer_id: e.target.value })}
+                  className="flex-1"
+                />
+                <p className="text-xs text-gray-500">Usado para criar campanhas reais no Google Ads</p>
+              </div>
             </div>
 
             {/* Instagram */}
