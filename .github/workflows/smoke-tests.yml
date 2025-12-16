@@ -1,0 +1,48 @@
+name: Smoke tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+    services: {}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and start services
+        run: |
+          docker compose -f infra/gaia-compose.yml up -d --build postgres redis gaia-server gaia-worker gaia-core gaia-media
+
+      - name: Wait for server health
+        run: |
+          echo "Waiting for gaia-server /health..."
+          for i in {1..40}; do
+            if curl -fsS http://localhost:3001/health >/dev/null 2>&1; then
+              echo "gaia-server is healthy"; break
+            fi
+            echo "waiting... ($i)"; sleep 5
+          done
+
+      - name: Run smoke test (PowerShell)
+        shell: pwsh
+        run: |
+          mkdir -p logs
+          pwsh -File ./scripts/run-smoke-tests.ps1 -ApiBase 'http://localhost:3001' -TimeoutSec 180
+        continue-on-error: false
+
+      - name: Upload smoke test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-logs
+          path: logs/
+
+      - name: Tear down services
+        if: always()
+        run: docker compose -f infra/gaia-compose.yml down -v
