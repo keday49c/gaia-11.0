@@ -1,8 +1,8 @@
-import fetch from 'node-fetch';
-
 /**
  * Create a Google Ads campaign using either a provided token/customerId (per-user)
  * or fallback to environment variables (GOOGLE_ADS_TOKEN / GOOGLE_ADS_CUSTOMER_ID).
+ *
+ * Note: We rely on Node 20+ global fetch instead of `node-fetch` for runtime network calls.
  */
 export async function createGoogleAdsCampaign(campaign: any, token?: string, customerId?: string) {
   const GOOGLE_ADS_TOKEN = token || process.env.GOOGLE_ADS_TOKEN || '';
