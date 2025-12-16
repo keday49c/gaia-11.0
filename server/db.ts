@@ -30,7 +30,8 @@ export const initializeDatabase = async () => {
     // Ensure UUID extension exists (needed for uuid_generate_v4)
     try {
       await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
-      console.log('✅ Extension "uuid-ossp" ensured');
+      await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`);
+      console.log('✅ Extensions "uuid-ossp" and "pgcrypto" ensured');
     } catch (extErr: any) {
       console.warn('⚠️ could not ensure uuid-ossp extension:', extErr?.message ?? extErr);
     }
@@ -38,7 +39,7 @@ export const initializeDatabase = async () => {
     // Tabela de usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
         senha VARCHAR(255) NOT NULL,
         nome VARCHAR(255),
@@ -54,7 +55,7 @@ export const initializeDatabase = async () => {
     // Tabela de campanhas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS campaigns (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         nome VARCHAR(255) NOT NULL,
         descricao TEXT,
@@ -79,7 +80,7 @@ export const initializeDatabase = async () => {
     // Tabela de métricas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS metrics (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
         data DATE NOT NULL,
         cliques INTEGER DEFAULT 0,
@@ -95,7 +96,7 @@ export const initializeDatabase = async () => {
     // Tabela de logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
         acao VARCHAR(255) NOT NULL,
         detalhes TEXT,
