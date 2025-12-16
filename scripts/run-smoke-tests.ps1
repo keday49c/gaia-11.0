@@ -78,6 +78,29 @@ while ((Get-Date) -lt $deadline) {
 
 if ($success) {
     Log "SMOKE TEST PASSED: metrics generated for campaign $campaignId"
+
+    # Now attempt to DELETE the campaign and verify it's gone
+    try {
+        $del = Invoke-RestMethod -Method Delete -Uri ($ApiBase + "/campaigns/$campaignId") -Headers $headers -TimeoutSec 10
+        Log "delete response: $(ConvertTo-Json $del -Depth 5)"
+    } catch {
+        Log "ERROR: delete campaign failed: $_"
+        exit 8
+    }
+
+    # Verify the campaign no longer appears in the user's list
+    try {
+        $list = Invoke-RestMethod -Method Get -Uri ($ApiBase + '/campaigns/lista') -Headers $headers -TimeoutSec 10
+        Log "list after delete: $(ConvertTo-Json $list -Depth 5)"
+        $found = $false
+        foreach ($c in $list.data) { if ($c.id -eq $campaignId) { $found = $true } }
+        if ($found) { Log "ERROR: campaign still present after delete"; exit 9 }
+    } catch {
+        Log "ERROR: verifying delete failed: $_"
+        exit 10
+    }
+
+    Log "SMOKE TEST PASSED: campaign deleted and absent from list"
     exit 0
 } else {
     Log "SMOKE TEST FAILED: no metrics within timeout"

@@ -147,6 +147,31 @@ export default function Campaigns() {
     }
   };
 
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.')) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('gaia_token');
+      const response = await fetch(`${API_URL}/campaigns/${campaignId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Campanha excluída com sucesso');
+        loadCampaigns();
+      } else {
+        alert('Falha ao excluir campanha: ' + (data.message || 'Erro'));
+      }
+    } catch (err) {
+      alert('Erro ao excluir campanha');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#001F3F] to-[#2ECC40] p-4">
       <div className="max-w-6xl mx-auto">
@@ -338,6 +363,16 @@ export default function Campaigns() {
                   <TrendingUp size={18} />
                   Relatório
                 </Button>
+                {!isGuest && (
+                  <Button
+                    onClick={() => handleDeleteCampaign(campaign.id)}
+                    variant="destructive"
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
+                    disabled={loading}
+                  >
+                    Excluir
+                  </Button>
+                )
               </div>
             </div>
           ))}

@@ -539,6 +539,34 @@ app.get('/campaigns/:campaignId/metricas', authenticateToken, async (req: AuthRe
   }
 });
 
+/**
+ * Excluir campanha (apenas proprietário pode excluir)
+ */
+app.delete('/campaigns/:campaignId', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
+    }
+
+    if (req.user.isGuest) {
+      return res.status(403).json({ success: false, message: 'Visitantes não podem excluir campanhas' });
+    }
+
+    const { campaignId } = req.params;
+
+    const result = await pool.query('DELETE FROM campaigns WHERE id = $1 AND user_id = $2 RETURNING id', [campaignId, req.user.id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Campanha não encontrada' });
+    }
+
+    return res.json({ success: true, message: 'Campanha excluída com sucesso', data: { id: campaignId } });
+  } catch (error: any) {
+    console.error('Erro ao excluir campanha:', error?.message ?? error);
+    return res.status(500).json({ success: false, message: 'Erro no servidor' });
+  }
+});
+
 // ============ ROTAS DE SAÚDE ============
 
 /**
@@ -566,7 +594,7 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       auth: ['/auth/login', '/auth/register', '/auth/guest'],
       keys: ['/keys/salvar', '/keys/meus-dados'],
-      campaigns: ['/campaigns/lista', '/campaigns/criar', '/campaigns/disparar', '/campaigns/:campaignId/metricas'],
+      campaigns: ['/campaigns/lista', '/campaigns/criar', '/campaigns/disparar', '/campaigns/:campaignId/metricas', '/campaigns/:campaignId'],
       health: ['/health'],
     },
   });
