@@ -11,15 +11,28 @@ function Log { param($m) Add-Content -Path $logFile -Value ("$(Get-Date -Format 
 
 Log "Starting smoke test against $ApiBase"
 
-# Register user
-$body = @{ email = "test+ci+$timestamp@local"; senha = "password123" } | ConvertTo-Json
-try {
-    $reg = Invoke-RestMethod -Method Post -Uri ($ApiBase + '/auth/register') -Body $body -ContentType 'application/json' -TimeoutSec 10
-    Log "register response: $(ConvertTo-Json $reg -Depth 5)"
-} catch {
-    Log "ERROR: registration failed: $_"
-    exit 2
+# Register user (with retries)
+$body = @{ email = "test+ci+$timestamp@example.local"; senha = "password123" } | ConvertTo-Json
+$reg = $null
+$retryDelays = @(2,4,8)
+for ($i = 0; $i -lt $retryDelays.Count; $i++) {
+    try {
+        $reg = Invoke-RestMethod -Method Post -Uri ($ApiBase + '/auth/register') -Body $body -ContentType 'application/json' -TimeoutSec 10
+        Log "register response: $(ConvertTo-Json $reg -Depth 5)"
+        break
+    } catch {
+        $err = $_
+        # Try to extract response body if available
+        $respBody = ""
+        if ($err.Exception -and $err.Exception.Response) {
+            try { $reader = (New-Object System.IO.StreamReader($err.Exception.Response.GetResponseStream())); $respBody = $reader.ReadToEnd() } catch { }
+        }
+        Log "ERROR: registration attempt $($i+1) failed: $err; response: $respBody"
+        if ($i -lt ($retryDelays.Count - 1)) { Start-Sleep -Seconds $retryDelays[$i] }
+    }
 }
+
+if (-not $reg) { Log "ERROR: registration failed after retries"; exit 2 }
 
 $token = $reg.data.token
 if (-not $token) { Log "ERROR: no token returned"; exit 3 }
