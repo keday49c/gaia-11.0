@@ -476,8 +476,23 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
         const campaign = campRes.rows[0];
         if (campaign && (campaign.plataforma === 'google_ads' || (req.body.plataformas && req.body.plataformas.google_ads))) {
           try {
-            // Pass userKey if present; customer id still comes from env var for now
-            const gaResp = await googleAds.createGoogleAdsCampaign(campaign, userKey || undefined, process.env.GOOGLE_ADS_CUSTOMER_ID);
+            // If there is a per-user key but no customerId configured in env, we can still
+            // simulate when the key is a TEST_ key; otherwise warn the operator.
+            const custId = process.env.GOOGLE_ADS_CUSTOMER_ID;
+            if (!custId && userKey && String(userKey).startsWith('TEST_')) {
+              console.log('ℹ️ No GOOGLE_ADS_CUSTOMER_ID configured but TEST_ key provided — simulating with TEST_CUSTOMER');
+            } else if (!custId && !userKey) {
+              console.warn('⚠️ GOOGLE_ADS_CUSTOMER_ID not configured — skipping Google Ads publish');
+              // Skip publish if no customer id and no userKey was provided (shouldn't happen)
+              return;
+            }
+
+            const gaResp = await googleAds.createGoogleAdsCampaign(
+              campaign,
+              userKey || undefined,
+              custId || (String(userKey).startsWith('TEST_') ? 'TEST_CUSTOMER' : undefined)
+            );
+
             console.log('✅ Google Ads campaign created:', gaResp);
           } catch (gaErr) {
             console.warn('⚠️ Google Ads publish failed:', gaErr?.message ?? gaErr);
