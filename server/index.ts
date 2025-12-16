@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import crypto from 'crypto';
 import pool, { initializeDatabase } from './db.js';
+import ai from './lib/ai.js';
 import { TEST_KEYS, DEMO_CAMPAIGNS, DEMO_METRICS, DEMO_USER } from './test-keys.js';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
@@ -567,6 +568,40 @@ app.delete('/campaigns/:campaignId', authenticateToken, async (req: AuthRequest,
   }
 });
 
+/**
+ * Analisar campanha com IA (gera recomendações e persiste resultado)
+ */
+app.post('/campaigns/:campaignId/analisar', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, message: 'Não autenticado' });
+
+    if (req.user.isGuest) return res.status(403).json({ success: false, message: 'Visitantes não podem solicitar análise' });
+
+    const { campaignId } = req.params;
+
+    // Buscar campanha e checar propriedade
+    const campRes = await pool.query('SELECT * FROM campaigns WHERE id = $1 AND user_id = $2', [campaignId, req.user.id]);
+    if (campRes.rowCount === 0) return res.status(404).json({ success: false, message: 'Campanha não encontrada' });
+    const campaign = campRes.rows[0];
+
+    // Buscar métricas recentes
+    const metricsRes = await pool.query('SELECT * FROM metrics WHERE campaign_id = $1 ORDER BY data DESC LIMIT 30', [campaignId]);
+    const metrics = metricsRes.rows || [];
+
+    // Check AI config
+    if (!ai.isAIConfigured()) {
+      return res.status(501).json({ success: false, message: 'IA não configurada. Defina AI_PROVIDER e credenciais (OPENAI_API_KEY or GEMINI_API_KEY).' });
+    }
+
+    const analysis = await ai.analyzeCampaignWithAI(campaign, metrics);
+
+    return res.json({ success: true, message: 'Análise realizada', data: analysis });
+  } catch (error: any) {
+    console.error('Erro ao analisar campanha:', error?.message ?? error);
+    return res.status(500).json({ success: false, message: 'Erro ao analisar campanha', error: error?.message });
+  }
+});
+
 // ============ ROTAS DE SAÚDE ============
 
 /**
@@ -594,7 +629,7 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       auth: ['/auth/login', '/auth/register', '/auth/guest'],
       keys: ['/keys/salvar', '/keys/meus-dados'],
-      campaigns: ['/campaigns/lista', '/campaigns/criar', '/campaigns/disparar', '/campaigns/:campaignId/metricas', '/campaigns/:campaignId'],
+      campaigns: ['/campaigns/lista', '/campaigns/criar', '/campaigns/disparar', '/campaigns/:campaignId/metricas', '/campaigns/:campaignId/analisar', '/campaigns/:campaignId'],
       health: ['/health'],
     },
   });

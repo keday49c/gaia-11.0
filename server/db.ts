@@ -52,6 +52,20 @@ export const initializeDatabase = async () => {
     `);
     console.log('✅ Tabela "users" pronta');
 
+    // Tabela de análises (resultados de IA)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS analyses (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        provider VARCHAR(100),
+        score INTEGER,
+        recommendations JSONB,
+        raw_response JSONB,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Tabela "analyses" pronta');
+
     // Tabela de campanhas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS campaigns (

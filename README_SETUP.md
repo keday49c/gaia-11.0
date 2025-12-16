@@ -113,6 +113,19 @@ JWT_SECRET=gaia-super-secret-jwt-key-2025-change-in-production
 NODE_ENV=development
 ```
 
+Para ativar a análise por IA (gera recomendações reais), adicione as variáveis abaixo em `server/.env` ou no ambiente do container:
+
+```env
+AI_PROVIDER=gemini   # ou 'openai'
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=ya29...
+OPENAI_MODEL=gpt-4o-mini
+GEMINI_MODEL=models/text-bison-001
+```
+
+Se as variáveis não estiverem definidas, a rota `/campaigns/:id/analisar` retornará 501 (Not Implemented) com instruções.
+
+
 ### Passo 5: Iniciar o backend
 
 ```bash
@@ -227,6 +240,15 @@ Content-Type: application/json
 # Obter métricas
 GET /campaigns/{campaignId}/metricas
 Authorization: Bearer {token}
+
+# Analisar campanha com IA (Real)
+POST /campaigns/{campaignId}/analisar
+Authorization: Bearer {token}
+
+Notes:
+- This endpoint calls an external AI provider (OpenAI or Google Gemini) and persists recommendations in the DB.
+- To enable, set `AI_PROVIDER` and provider credentials in `server/.env` (see `server/.env.example`).
+- If the server is not configured with AI credentials it returns HTTP 501 (Not Implemented).
 ```
 
 ---

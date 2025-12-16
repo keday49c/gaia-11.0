@@ -79,6 +79,17 @@ while ((Get-Date) -lt $deadline) {
 if ($success) {
     Log "SMOKE TEST PASSED: metrics generated for campaign $campaignId"
 
+    # Attempt to run AI analysis (may return 501 if IA not configured)
+    try {
+        $an = Invoke-RestMethod -Method Post -Uri ($ApiBase + "/campaigns/$campaignId/analisar") -Headers $headers -TimeoutSec 20
+        Log "analysis response: $(ConvertTo-Json $an -Depth 5)"
+    } catch {
+        $err = $_.Exception.Response
+        $status = "unknown"
+        if ($err) { try { $status = (New-Object System.IO.StreamReader($err.GetResponseStream())).ReadToEnd() } catch {} }
+        Log "WARN: analyze request failed or skipped: $status"
+    }
+
     # Now attempt to DELETE the campaign and verify it's gone
     try {
         $del = Invoke-RestMethod -Method Delete -Uri ($ApiBase + "/campaigns/$campaignId") -Headers $headers -TimeoutSec 10

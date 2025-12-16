@@ -67,6 +67,8 @@ O que foi adicionado/alterado
 
 **Gaia** é uma plataforma pessoal de automação de marketing digital que permite criar campanhas, publicar em tempo real no Google Ads, Instagram, TikTok, gerenciar conversas no WhatsApp por voz e analisar tudo com IA Gemini. Roda no PC ou no celular, sem servidor obrigatório.
 
+Nota: a integração com IA está disponível mas requer configuração de credenciais (ver `server/.env.example`). Configure `AI_PROVIDER` e a chave (`OPENAI_API_KEY` ou `GEMINI_API_KEY`) para ativar análises reais.
+
 ## 📋 Fase 1: Esqueleto
 
 Este é o esqueleto do frontend do projeto Gaia, construído com **React 19** e **TailwindCSS 4**.
