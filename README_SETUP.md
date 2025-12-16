@@ -264,6 +264,12 @@ Content-Type: application/json
   "campaignId": "uuid-da-campanha"
 }
 
+> Observação: Para publicar via Google Ads o Gaia procura, por ordem de preferência:
+> 1. Uma chave salva no seu usuário (POST /keys/salvar → `google_ads_key`)
+> 2. A variável de ambiente `GOOGLE_ADS_TOKEN` configurada no servidor
+>
+> Além disso, a `GOOGLE_ADS_CUSTOMER_ID` deve estar definida como variável de ambiente no servidor (a versão atual usa customerId vindo de env). Se você salvou sua chave no painel de `Configurações` e salvou, o backend usará essa chave automaticamente — basta disparar a campanha (`/campaigns/disparar`) e o backend tentará criar a campanha no Google Ads quando o `plataforma` da campanha for `google_ads`.
+
 # Obter métricas
 GET /campaigns/{campaignId}/metricas
 Authorization: Bearer {token}
@@ -274,7 +280,7 @@ Authorization: Bearer {token}
 
 Notes:
 - This endpoint calls an external AI provider (OpenAI or Google Gemini) and persists recommendations in the DB.
-- To enable, set `AI_PROVIDER` and provider credentials in `server/.env` (see `server/.env.example`).
+- To enable AI, set `AI_PROVIDER` and provider credentials in `server/.env` (see `server/.env.example`).
 - If the server is not configured with AI credentials it returns HTTP 501 (Not Implemented).
 ```
 

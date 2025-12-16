@@ -467,12 +467,17 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
 
     // Optionally call Google Ads when configured and the campaign platform includes it
     try {
-      if (process.env.GOOGLE_ADS_TOKEN) {
+      // Prefer a per-user saved key (from users.google_ads_key); fall back to process.env.GOOGLE_ADS_TOKEN
+      const userRes = await pool.query('SELECT google_ads_key FROM users WHERE id = $1', [req.user.id]);
+      const userKey = userRes.rows?.[0]?.google_ads_key || null;
+
+      if (userKey || process.env.GOOGLE_ADS_TOKEN) {
         const campRes = await pool.query('SELECT * FROM campaigns WHERE id = $1', [campaignId]);
         const campaign = campRes.rows[0];
         if (campaign && (campaign.plataforma === 'google_ads' || (req.body.plataformas && req.body.plataformas.google_ads))) {
           try {
-            const gaResp = await googleAds.createGoogleAdsCampaign(campaign);
+            // Pass userKey if present; customer id still comes from env var for now
+            const gaResp = await googleAds.createGoogleAdsCampaign(campaign, userKey || undefined, process.env.GOOGLE_ADS_CUSTOMER_ID);
             console.log('✅ Google Ads campaign created:', gaResp);
           } catch (gaErr) {
             console.warn('⚠️ Google Ads publish failed:', gaErr?.message ?? gaErr);

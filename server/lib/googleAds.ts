@@ -1,19 +1,21 @@
 import fetch from 'node-fetch';
 
-const GOOGLE_ADS_TOKEN = process.env.GOOGLE_ADS_TOKEN || '';
-const GOOGLE_ADS_CUSTOMER_ID = process.env.GOOGLE_ADS_CUSTOMER_ID || '';
+/**
+ * Create a Google Ads campaign using either a provided token/customerId (per-user)
+ * or fallback to environment variables (GOOGLE_ADS_TOKEN / GOOGLE_ADS_CUSTOMER_ID).
+ */
+export async function createGoogleAdsCampaign(campaign: any, token?: string, customerId?: string) {
+  const GOOGLE_ADS_TOKEN = token || process.env.GOOGLE_ADS_TOKEN || '';
+  const GOOGLE_ADS_CUSTOMER_ID = customerId || process.env.GOOGLE_ADS_CUSTOMER_ID || '';
 
-export async function createGoogleAdsCampaign(campaign: any) {
   if (!GOOGLE_ADS_TOKEN || !GOOGLE_ADS_CUSTOMER_ID) {
-    throw new Error('GOOGLE_ADS_TOKEN or GOOGLE_ADS_CUSTOMER_ID not configured');
+    throw new Error('GOOGLE_ADS_TOKEN or GOOGLE_ADS_CUSTOMER_ID not configured (provide token and customerId or set env vars)');
   }
 
-  // NOTE: This is a minimal placeholder implementation.
-  // Real implementation must call Google Ads API and map fields correctly.
-  // We return a simulated response object but only when credentials are present.
+  // NOTE: This is still a minimal placeholder implementation. A production version
+  // should implement Google Ads API client with proper field mappings and error handling.
   const url = `https://googleads.googleapis.com/v14/customers/${GOOGLE_ADS_CUSTOMER_ID}/campaigns`;
   const body = {
-    // map local campaign fields to Google Ads fields - this is highly simplified
     name: campaign.nome || campaign.titulo || 'Gaia Campaign',
     status: 'PAUSED',
   };
