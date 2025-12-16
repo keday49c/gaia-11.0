@@ -434,6 +434,8 @@ app.post('/campaigns/criar', authenticateToken, async (req: AuthRequest, res: Re
 /**
  * Disparar campanha
  */
+import googleAds from './lib/googleAds.js';
+
 app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -462,6 +464,24 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
       'UPDATE campaigns SET status = $1, atualizado_em = CURRENT_TIMESTAMP WHERE id = $2 AND user_id = $3',
       ['ativa', campaignId, req.user.id]
     );
+
+    // Optionally call Google Ads when configured and the campaign platform includes it
+    try {
+      if (process.env.GOOGLE_ADS_TOKEN) {
+        const campRes = await pool.query('SELECT * FROM campaigns WHERE id = $1', [campaignId]);
+        const campaign = campRes.rows[0];
+        if (campaign && (campaign.plataforma === 'google_ads' || (req.body.plataformas && req.body.plataformas.google_ads))) {
+          try {
+            const gaResp = await googleAds.createGoogleAdsCampaign(campaign);
+            console.log('✅ Google Ads campaign created:', gaResp);
+          } catch (gaErr) {
+            console.warn('⚠️ Google Ads publish failed:', gaErr?.message ?? gaErr);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Optional Google Ads step errored:', err?.message ?? err);
+    }
 
     return res.json({
       success: true,

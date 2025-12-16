@@ -29,6 +29,12 @@ jobs:
             echo "waiting... ($i)"; sleep 5
           done
 
+      - name: Run server tests
+        run: |
+          cd server
+          npm ci
+          npm test
+
       - name: Run smoke test (PowerShell)
         shell: pwsh
         run: |

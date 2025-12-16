@@ -15,6 +15,29 @@ Guia passo-a-passo para configurar e executar o Gaia 10.0 em seu ambiente local.
 
 ## 🐳 Opção 1: Com Docker (Recomendado)
 
+---
+
+## 📦 Gaia One (Aplicativo para macOS portátil)
+
+Se quiser um aplicativo executável para MacBook Pro que rode o Gaia localmente a partir de um pendrive, você pode construir o pacote desktop chamado **Gaia One**.
+
+Passos resumidos:
+1. No macOS com Node.js e NPM instalados, execute:
+   - `npm run server:build` (compila o backend)
+   - `npm run build --workspace=client` (compila o frontend)
+   - `cd desktop && npm install && npm run build` (gera `Gaia One.dmg` e `Gaia One.zip`)
+2. Copie `dist/*.dmg` ou o `.zip` para o pendrive e monte o `.dmg` no MacBook Pro.
+3. Abra `Gaia One.app` — o aplicativo iniciará o backend (usando SQLite no diretório do usuário do app) e abrirá a interface em uma janela. O banco SQLite ficará no mesmo local (compatível com pendrive se o app for executado diretamente do pendrive).
+
+Observações:
+- Para que o app seja executável em Macs modernos, é recomendável assinar e notarizar o binário (gatekeeper). Isso não é automático no build local.
+- O modo desktop roda com SQLite para evitar depender de Postgres, tornando-o portátil.
+- Antes de construir, configure variáveis de ambiente necessárias (ex.: AI_PROVIDER, keys) caso deseje que o app possa chamar as APIs externas.
+
+---
+
+## 🐳 Opção 1: Com Docker (Recomendado)
+
 ### Passo 1: Clonar o repositório
 
 ```bash

@@ -14,7 +14,8 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f backend",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "desktop:build": "npm run server:build && npm run build --workspace=client && (cd desktop && npm install && npm run build)"
   },
   "workspaces": [
     "client",

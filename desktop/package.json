@@ -1,0 +1,26 @@
+{
+  "name": "gaia-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac --x64 --arm64",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "electron": "^26.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.6.0"
+  },
+  "build": {
+    "productName": "Gaia One",
+    "appId": "com.gaia.one",
+    "mac": {
+      "target": ["dmg","zip"],
+      "category": "public.app-category.business"
+    },
+    "files": ["**/*", "../server/dist/**", "../client/dist/**"]
+  }
+}
