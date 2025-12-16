@@ -61,8 +61,8 @@ async function callGemini(prompt: string) {
 export async function analyzeCampaignWithAI(campaign: any, metrics: any[]) {
   if (!PROVIDER) throw new Error('AI_PROVIDER not configured');
 
-  // Build prompt with campaign + recent metrics
-  const prompt = `Analise esta campanha e gere um JSON com as chaves: score (0-100), recomendacoes (array de strings), observacoes (string).\nCampanha: ${JSON.stringify(campaign, null, 2)}\nMetricas recentes: ${JSON.stringify(metrics, null, 2)}\nResponda apenas com JSON válido.`;
+  // Build a strict prompt asking for only valid JSON with the expected schema
+  const prompt = `You are a marketing analyst assistant. Analyze the campaign and return ONLY valid JSON, matching this schema exactly (no additional text):\n{\n  "score": <integer 0-100>,\n  "recommendations": ["string", ...],\n  "observations": "string"\n}\nProvide concise, actionable recommendations.\n\nCampaign: ${JSON.stringify(campaign, null, 2)}\nRecent metrics: ${JSON.stringify(metrics, null, 2)}\nReturn only JSON.`;
 
   let result: any;
   if (PROVIDER.toLowerCase() === 'openai') {
@@ -73,20 +73,49 @@ export async function analyzeCampaignWithAI(campaign: any, metrics: any[]) {
     throw new Error(`Unknown AI_PROVIDER: ${PROVIDER}`);
   }
 
-  // If the model returned parseable JSON, use it; otherwise attempt to extract fields heuristically
-  const parsed = result.parsed || { score: null, recomendacoes: [], observacoes: result.raw };
+  // If the model returned parseable JSON, validate and normalize it; otherwise attempt to extract/validate
+  let parsed = result.parsed || null;
 
-  // Persist analysis in DB
+  function normalize(parsedObj: any) {
+    const out: any = { score: null, recommendations: [], observations: '' };
+    if (!parsedObj) return out;
+    // score: number 0-100
+    const score = Number(parsedObj.score ?? parsedObj.pontuacao ?? parsedObj.score_raw);
+    out.score = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null;
+    // recommendations: array of strings
+    const recs = parsedObj.recommendations || parsedObj.recomendacoes || parsedObj.recomendacoes || parsedObj.recs;
+    if (Array.isArray(recs)) out.recommendations = recs.map((r: any) => String(r).trim()).filter(Boolean);
+    // observations / observacoes
+    out.observations = String(parsedObj.observations || parsedObj.observacoes || parsedObj.note || parsedObj.observacao || '') || '';
+    return out;
+  }
+
+  let normalized = normalize(parsed);
+
+  // If parsing failed, try to extract JSON from raw text then normalize
+  if (!parsed) {
+    try {
+      const heuristic = extractJSON(result.raw || '');
+      if (heuristic) {
+        parsed = heuristic;
+        normalized = normalize(parsed);
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  // Persist analysis in DB storing normalized fields and raw response
   const insert = await pool.query(
     'INSERT INTO analyses (campaign_id, provider, score, recommendations, raw_response) VALUES ($1, $2, $3, $4, $5) RETURNING id, criado_em',
-    [campaign.id, result.provider, parsed.score || null, parsed.recomendacoes ? parsed.recomendacoes : parsed.recommendations || [], { raw: result.raw }]
+    [campaign.id, result.provider, normalized.score, JSON.stringify(normalized.recommendations), { raw: result.raw }]
   );
 
   return {
     id: insert.rows[0].id,
     criado_em: insert.rows[0].criado_em,
     provider: result.provider,
-    parsed,
+    parsed: normalized,
     raw: result.raw,
   };
 }

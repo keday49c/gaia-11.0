@@ -123,7 +123,11 @@ OPENAI_MODEL=gpt-4o-mini
 GEMINI_MODEL=models/text-bison-001
 ```
 
-Se as variáveis não estiverem definidas, a rota `/campaigns/:id/analisar` retornará 501 (Not Implemented) com instruções.
+Se for usar CI (GitHub Actions), **adicione as chaves como GitHub Secrets** (Repository > Settings > Secrets > Actions):
+- `OPENAI_API_KEY` (se usar OpenAI)
+- `GEMINI_API_KEY` (se usar Gemini/Google)
+
+O workflow de smoke tests foi atualizado para **rodar os testes de análise somente quando estes secrets estiverem presentes**. Se as variáveis não estiverem definidas localmente a rota `/campaigns/:id/analisar` retornará 501 (Not Implemented) com instruções.
 
 
 ### Passo 5: Iniciar o backend

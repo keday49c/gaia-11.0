@@ -36,6 +36,15 @@ jobs:
           pwsh -File ./scripts/run-smoke-tests.ps1 -ApiBase 'http://localhost:3001' -TimeoutSec 180
         continue-on-error: false
 
+      - name: Run analyze tests (only if AI secrets present)
+        if: ${{ secrets.OPENAI_API_KEY != '' || secrets.GEMINI_API_KEY != '' }}
+        shell: pwsh
+        run: |
+          echo "AI secrets detected, running analyze integration tests"
+          mkdir -p logs
+          pwsh -File ./scripts/run-analyze-ci.ps1 -ApiBase 'http://localhost:3001' -TimeoutSec 180
+        continue-on-error: false
+
       - name: Upload smoke test logs
         if: always()
         uses: actions/upload-artifact@v4
