@@ -27,6 +27,14 @@ export const initializeDatabase = async () => {
     const testConnection = await pool.query('SELECT NOW()');
     console.log('✅ Conexão com banco de dados estabelecida:', testConnection.rows[0]);
 
+    // Ensure UUID extension exists (needed for uuid_generate_v4)
+    try {
+      await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
+      console.log('✅ Extension "uuid-ossp" ensured');
+    } catch (extErr: any) {
+      console.warn('⚠️ could not ensure uuid-ossp extension:', extErr?.message ?? extErr);
+    }
+
     // Tabela de usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (

@@ -29,7 +29,7 @@ services:
 
   gaia-server:
     build:
-      context: ../gaia-server
+      context: ../server
       dockerfile: Dockerfile
     image: gaia-server:local
     container_name: gaia-server
@@ -39,6 +39,7 @@ services:
       - PORT=3001
       - DATABASE=sqlite
       - SQLITE_FILE=/data/gaia.sqlite
+      - DB_SSL=false
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
@@ -72,9 +73,29 @@ services:
       timeout: 10s
       retries: 1
 
+  postgres:
+    image: postgres:15-alpine
+    container_name: gaia-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=gaia_user
+      - POSTGRES_PASSWORD=gaia_password
+      - POSTGRES_DB=gaia_db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - gaia-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gaia_user -d gaia_db || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   gaia-worker:
     build:
-      context: ../gaia-server
+      context: ../server
       dockerfile: Dockerfile
     image: gaia-worker:local
     container_name: gaia-worker
@@ -84,6 +105,7 @@ services:
       - NODE_ENV=production
       - DATABASE=sqlite
       - SQLITE_FILE=/data/gaia.sqlite
+      - DB_SSL=false
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
@@ -115,3 +137,4 @@ volumes:
   redis_data:
   gaia_core_static:
   media_data:
+  pg_data:
