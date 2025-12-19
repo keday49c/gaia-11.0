@@ -6,9 +6,8 @@ WORKDIR /app
 COPY server/package.json server/package-lock.json* ./
 RUN npm install
 
-# Copy TypeScript sources and tsconfig
-COPY server/*.ts ./
-COPY server/tsconfig.json ./
+# Copy TypeScript sources and tsconfig (include entire server directory so types and libs are available)
+COPY server/ ./
 
 # Build TypeScript (produces ./dist)
 RUN npm run build
