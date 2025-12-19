@@ -242,7 +242,7 @@ app.post('/keys/salvar', authenticateToken, async (req: AuthRequest, res: Respon
  */
 app.post('/keys/validate', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { google_ads_key, instagram_token, whatsapp_token } = req.body;
+    const { google_ads_key, google_ads_customer_id, instagram_token, whatsapp_token } = req.body;
 
     // Validações simples/simuladas:
     const validateGoogle = () => {
@@ -503,12 +503,12 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
             );
 
             console.log('✅ Google Ads campaign created:', gaResp);
-          } catch (gaErr) {
+          } catch (gaErr: any) {
             console.warn('⚠️ Google Ads publish failed:', gaErr?.message ?? gaErr);
           }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('⚠️ Optional Google Ads step errored:', err?.message ?? err);
     }
 

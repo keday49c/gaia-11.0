@@ -55,7 +55,7 @@ if (!useSqlite) {
 }
 
 // Event handlers para pool
-pool.on('error', (err) => {
+pool.on('error', (err: any) => {
   console.error('❌ Erro inesperado no pool de conexões:', err);
 });
 
