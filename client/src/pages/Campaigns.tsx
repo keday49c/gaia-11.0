@@ -327,9 +327,16 @@ export default function Campaigns() {
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
                   <strong>Plataformas:</strong>{' '}
-                  {Object.keys(campaign.plataformas || {})
-                    .filter((k) => campaign.plataformas[k])
-                    .join(', ') || 'Nenhuma'}
+                  {(() => {
+                    // Support both legacy `plataforma: string` and newer `plataformas: { google_ads: true }` shape
+                    if (campaign.plataformas && Object.keys(campaign.plataformas).length) {
+                      return Object.keys(campaign.plataformas).filter((k) => campaign.plataformas[k]).join(', ');
+                    }
+                    if (campaign.plataforma) {
+                      return String(campaign.plataforma);
+                    }
+                    return 'Nenhuma';
+                  })()}
                 </p>
               </div>
 
