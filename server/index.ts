@@ -216,8 +216,9 @@ app.post('/keys/salvar', authenticateToken, async (req: AuthRequest, res: Respon
     const { google_ads_key, google_ads_customer_id, instagram_token, whatsapp_token } = req.body;
 
     // Atualizar chaves no banco (inclui customer id)
+    // Use text comparison to avoid invalid UUID errors for demo/guest users
     await pool.query(
-      'UPDATE users SET google_ads_key = $1, google_ads_customer_id = $2, instagram_token = $3, whatsapp_token = $4, atualizado_em = CURRENT_TIMESTAMP WHERE id = $5',
+      'UPDATE users SET google_ads_key = $1, google_ads_customer_id = $2, instagram_token = $3, whatsapp_token = $4, atualizado_em = CURRENT_TIMESTAMP WHERE id::text = $5',
       [google_ads_key, google_ads_customer_id, instagram_token, whatsapp_token, req.user.id]
     );
 
