@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index';
+import app from '../index.js';
 
 // These tests are conditional: if AI_PROVIDER is not configured, the analyze endpoint returns 501
 

@@ -33,7 +33,7 @@ async function callOpenAI(prompt: string) {
       max_tokens: 800,
     }),
   });
-  const data = await resp.json();
+  const data: any = await resp.json();
   const text = data?.choices?.[0]?.message?.content ?? JSON.stringify(data);
   const parsed = extractJSON(text) || null;
   return { provider: 'openai', raw: text, parsed };
@@ -52,7 +52,7 @@ async function callGemini(prompt: string) {
       maxOutputTokens: 800,
     }),
   });
-  const data = await resp.json();
+  const data: any = await resp.json();
   const text = data?.candidates?.[0]?.output ?? JSON.stringify(data);
   const parsed = extractJSON(text) || null;
   return { provider: 'gemini', raw: text, parsed };

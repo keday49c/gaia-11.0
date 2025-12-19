@@ -1,4 +1,4 @@
-import pool from '../db';
+import pool from '../db.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
