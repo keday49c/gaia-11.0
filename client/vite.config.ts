@@ -46,6 +46,16 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    // Proxy `/api` to the backend during local development so that the frontend
+    // can use a relative `/api` base (no CORS issues). This mirrors how the
+    // production Nginx proxies `/api` to the backend service.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
     middlewareMode: false,
   },
   preview: {
