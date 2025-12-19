@@ -379,7 +379,7 @@ export default function Campaigns() {
                   >
                     Excluir
                   </Button>
-                )
+                )}
               </div>
             </div>
           ))}
