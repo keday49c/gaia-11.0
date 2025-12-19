@@ -496,14 +496,15 @@ app.post('/campaigns/disparar', authenticateToken, async (req: AuthRequest, res:
               return;
             }
 
-            const gaResp = await googleAds.createGoogleAdsCampaign(
-              campaign,
-              userKey || undefined,
-              custId || (String(userKey).startsWith('TEST_') ? 'TEST_CUSTOMER' : undefined)
-            );
+            const gaResp = await googleAds.createGoogleAdsCampaign(campaign, {
+              token: userKey || undefined,
+              customerId: custId || (userKey && String(userKey).startsWith('TEST_') ? 'TEST_CUSTOMER' : undefined),
+              developerToken: process.env.GOOGLE_ADS_DEVELOPER_TOKEN || undefined,
+              loginCustomerId: process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || undefined,
+              simulateIfTestKey: true,
+            });
 
-            console.log('✅ Google Ads campaign created:', gaResp);
-          } catch (gaErr: any) {
+            console.log('✅ Google Ads campaign created:', gaResp?.resource?.resourceName || gaResp?.resource || gaResp);          } catch (gaErr: any) {
             console.warn('⚠️ Google Ads publish failed:', gaErr?.message ?? gaErr);
           }
         }
