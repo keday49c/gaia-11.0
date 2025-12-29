@@ -296,7 +296,41 @@ function createWindow () {
   }
 }
 
+// Check that FFmpeg binary is available (either in PATH or via ffmpeg-static)
+function checkFfmpeg() {
+  const { execFileSync } = require('child_process');
+  // Try running `ffmpeg -version`
+  try {
+    execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    // Try ffmpeg-static if installed in node_modules
+    try {
+      const ffmpegStatic = require('ffmpeg-static');
+      if (ffmpegStatic && require('fs').existsSync(ffmpegStatic)) return true;
+    } catch (err) {
+      // ignore
+    }
+    return false;
+  }
+}
+
 app.whenReady().then(async () => {
+  // Warn user if FFmpeg is missing (it is required for media processing features)
+  if (!checkFfmpeg()) {
+    const choice = dialog.showMessageBoxSync({
+      type: 'error',
+      title: 'FFmpeg não encontrado',
+      message: 'O aplicativo não encontrou FFmpeg (ffmpeg.exe / ffmpeg.dll). Alguns recursos de mídia não funcionarão. Deseja abrir a página de download do FFmpeg agora?',
+      buttons: ['Abrir site', 'Continuar sem FFmpeg', 'Sair']
+    });
+    if (choice === 0) require('electron').shell.openExternal('https://www.gyan.dev/ffmpeg/builds/');
+    if (choice === 2) {
+      app.quit();
+      return;
+    }
+  }
+
   await startServer();
   createWindow();
 

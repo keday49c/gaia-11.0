@@ -1,21 +1,25 @@
 {
   "name": "gaia-desktop",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "main": "main.js",
   "scripts": {
+    "prepare-ffmpeg": "pwsh -File scripts/download-ffmpeg.ps1 -Force",
     "start": "electron .",
     "build": "electron-builder --mac --x64 --arm64",
-    "build:win": "electron-builder --win --x64 --x64 --publish never",
+    "build:win": "npm run prepare-ffmpeg && electron-builder --win --x64 --publish never",
+    "build:gaia3": "npm run prepare-ffmpeg && electron-builder --win --x64 --publish never",
     "pack": "electron-builder --dir",
     "serve-updates": "node scripts/serve-updates.js",
     "build-and-serve": "npm run build:win && npm run serve-updates",
+    "make-portable-gaia3": "pwsh -File scripts/make_portable_gaia3.ps1",
     "test": "jest --runInBand"
   },
   "dependencies": {
     "electron-updater": "^6.6.2",
     "electron-log": "^5.0.0",
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "ffmpeg-static": "^5.1.0"
   },
   "devDependencies": {
     "jest": "^29.6.1",
@@ -25,8 +29,8 @@
   "description": "Gaia Desktop - Electron wrapper for Gaia backend + dashboard",
   "author": "Gaia Project",
   "build": {
-    "productName": "Gaia 2.0",
-    "appId": "com.gaia.two",
+    "productName": "Gaia 3.0",
+    "appId": "com.gaia.three",
     "mac": {
       "target": ["dmg","zip"],
       "category": "public.app-category.business"
@@ -35,6 +39,13 @@
     "win": {
       "target": [
         "nsis"
+      ],
+      "extraResources": [
+        {
+          "from": "vendor/ffmpeg/win64",
+          "to": "ffmpeg",
+          "filter": ["**/*"]
+        }
       ]
     },
     "publish": [
