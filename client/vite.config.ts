@@ -21,6 +21,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "../dist/public"),
     emptyOutDir: true,
+    // Disable CSS native minifier to avoid native optional binary issues in CI/container
+    minify: false,
     rollupOptions: {
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
@@ -54,6 +56,8 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
+        // Remove the /api prefix when proxying to the backend which exposes endpoints at /
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
     middlewareMode: false,

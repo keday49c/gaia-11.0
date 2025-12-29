@@ -37,6 +37,13 @@ npm run server:dev
 npm run dev
 ```
 
+Empacotamento com CMake (Windows)
+
+Se você quer gerar um executável Windows para o backend e empacotar o frontend estático, há um `CMakeLists.txt` e um script de empacotamento em `scripts/cmake` que orquestram o fluxo (instala dependências, compilam server/client e usam `pkg` para gerar `gaia-server.exe`). Veja detalhes em `docs/PACKAGING_CMAKE.md`.
+
+> Observação: este processo requer **Node >=20**, **npm >=10**, **CMake >=3.24** e (opcional) **NSIS** para um instalador Windows.
+
+
 Setar senha de usuário diretamente no banco
 
 Você pediu para criar/definir a conta:
@@ -49,10 +56,10 @@ Para aplicar essa senha ao banco (se estiver usando o banco do docker ou local),
 ```powershell
 # usando tsx (server tem script npm para isso)
 npm run server:dev # (em outro terminal, mantê-lo rodando não é estritamente necessário)
-npm --prefix server run set-password -- --email davidcruner@gmail.com --password 123456
+npm --prefix server run set-password -- --email davidcruner@gmail.com --password <sua_senha>
 
 # ou, usando tsx direto se você tiver instalado:
-npx tsx server/scripts/set_password.ts --email davidcruner@gmail.com --password 123456
+npx tsx server/scripts/set_password.ts --email davidcruner@gmail.com --password <sua_senha>
 ```
 
 Notas de segurança
@@ -61,7 +68,7 @@ Notas de segurança
 
 O que foi adicionado/alterado
 - `server/scripts/set_password.ts` - script para set/reset de senha (usa bcrypt e atualiza/insera usuário).
-- `server/index.ts` - adicionada validação (`zod`) e rate-limiting (`express-rate-limit`) nos endpoints de auth.
+- `server/index.ts` - adicionada validação (`zod`) e rate-limiting (`express-rate-limit`) nos endpoints de auth. Foi adicionado o endpoint `GET /auth/has-admin` para permitir que o frontend verifique se já existe um administrador/usuário e assim ajustar corretamente a tela de login/registro.
 - `.env.example` e `README.md` com instruções.
 # Gaia 10.0 - Esqueleto Frontend
 

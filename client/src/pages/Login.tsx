@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { login, register, saveToken } from '@/lib/api';
-import { isPasswordSet, saveEncryptedPassword } from '@/lib/crypto';
+import { login, register, saveToken, getHasAdmin } from '@/lib/api';
+import { saveEncryptedPassword } from '@/lib/crypto';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -12,13 +12,39 @@ interface LoginProps {
 
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [, setLocation] = useLocation();
-  const [isSettingPassword, setIsSettingPassword] = useState(!isPasswordSet());
+  const [isSettingPassword, setIsSettingPassword] = useState<boolean | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // On mount, query backend to know whether an admin exists. This avoids
+  // relying on client-side storage and ensures the login screen shows
+  // 'set password' only when no admin/user exists yet.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await getHasAdmin();
+        if (!mounted) return;
+        if (resp.success && typeof resp.data?.hasAdmin === 'boolean') {
+          setIsSettingPassword(!resp.data.hasAdmin);
+        } else {
+          // If the server response is unknown, default to login flow
+          setIsSettingPassword(false);
+        }
+      } catch (e) {
+        console.warn('Falha ao verificar admin:', e);
+        setIsSettingPassword(false);
+      } finally {
+        setInitialLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,9 +89,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       // Salvar token
       if (response.data?.token) {
         saveToken(response.data.token);
+        try {
+          const gaia = (window as any).gaia;
+          if (gaia && typeof gaia.storeCredential === 'function') {
+            // Save password and token in OS keychain for desktop
+            await gaia.storeCredential('gaia', 'token', response.data.token);
+            await gaia.storeCredential('gaia', 'password', password);
+          }
+        } catch (e) {
+          // ignore keychain errors
+        }
       }
 
-      // Salvar senha criptografada localmente
+      // Salvar senha criptografada localmente (fallback web)
       saveEncryptedPassword(password);
       setIsSettingPassword(false);
       setPassword('');
@@ -85,14 +121,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setLoading(true);
 
     try {
-      // Verifica credenciais de admin
-      if (email === 'admin' && password === 'senha123') {
-        // Admin login
-        localStorage.setItem('gaia_admin', 'true');
-        setLoading(false);
-        onLoginSuccess();
-        return;
-      }
+      // Nota: backdoor de admin removido por segurança; usar autenticação do backend
+      // (anteriormente havia um check com credenciais fixas para dev local)
 
       // Login regular
       if (!email || !password) {
@@ -112,6 +142,15 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       // Salvar token
       if (response.data?.token) {
         saveToken(response.data.token);
+        try {
+          const gaia = (window as any).gaia;
+          if (gaia && typeof gaia.storeCredential === 'function') {
+            await gaia.storeCredential('gaia', 'token', response.data.token);
+            await gaia.storeCredential('gaia', 'password', password);
+          }
+        } catch (e) {
+          // ignore keychain errors
+        }
       }
 
       setLoading(false);
@@ -153,6 +192,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       {/* Form Container */}
       <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+        {initialLoading ? (
+          <div className="flex items-center justify-center h-48">
+            <div className="text-gray-600">Carregando...</div>
+          </div>
+        ) : null}
         {isSettingPassword ? (
           <>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">

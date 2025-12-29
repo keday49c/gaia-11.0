@@ -17,9 +17,18 @@
     "rootDir": ".",
     "noImplicitAny": true,
     "strictNullChecks": true,
-    "strictFunctionTypes": true
+    "strictFunctionTypes": true,
+    "isolatedModules": true
   },
-  "include": ["**/*.ts", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tests", "scripts"]
+  "include": [
+    "index.ts",
+    "db.ts",
+    "lib/**/*.ts",
+    "scripts/**/*.ts",
+    "seed-default-user.ts",
+    "worker.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "tests"]
 }
 

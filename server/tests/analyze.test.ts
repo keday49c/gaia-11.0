@@ -1,10 +1,11 @@
 import request from 'supertest';
-import app from '../index.js';
+import app, { ready } from '../index';
 
 // These tests are conditional: if AI_PROVIDER is not configured, the analyze endpoint returns 501
 
 describe('Analyze endpoint', () => {
   it('returns 501 when AI not configured', async () => {
+    await ready; // ensure DB initialized before making requests
     const tmpEmail = `test+analyze+${Date.now()}@example.local`;
     // register
     const reg = await request(app).post('/auth/register').send({ email: tmpEmail, senha: 'password123' });

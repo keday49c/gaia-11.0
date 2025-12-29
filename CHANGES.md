@@ -9,5 +9,7 @@
 
 Notes:
 - The smoke test will register a temporary user; ensure ports 3000/3001/redis are available.
+
+- Portable package: default to SQLite when `DATABASE` isn't set and **fallback to SQLite** automatically if Postgres is unreachable. (Improves plug-and-play experience on Windows portable builds.)
 - To build the desktop app locally on a Mac: `npm run desktop:build` (this runs `server` and `client` builds and then `electron-builder` inside `desktop/` — outputs go to `dist/` by default).
 - To run smoke tests locally: `powershell -File .\scripts\run-smoke-tests.ps1`

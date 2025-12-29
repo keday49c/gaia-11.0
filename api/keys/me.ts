@@ -1,7 +1,15 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gaia-secret-key-2025';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Missing required environment variable JWT_SECRET');
+  } else {
+    console.warn('Warning: JWT_SECRET not set. Using temporary development secret. Set JWT_SECRET in your environment for production.');
+  }
+}
+const ACTIVE_JWT_SECRET = JWT_SECRET || 'dev-temporary-jwt-secret';
 
 const TEST_KEYS = {
   GOOGLE_ADS: {
@@ -45,7 +53,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      const decoded = jwt.verify(token, ACTIVE_JWT_SECRET) as any;
 
       // Se for visitante, retornar dados de teste
       if (decoded.isGuest) {

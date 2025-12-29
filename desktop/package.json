@@ -1,26 +1,48 @@
 {
   "name": "gaia-desktop",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --mac --x64 --arm64",
-    "pack": "electron-builder --dir"
+    "build:win": "electron-builder --win --x64 --x64 --publish never",
+    "pack": "electron-builder --dir",
+    "serve-updates": "node scripts/serve-updates.js",
+    "build-and-serve": "npm run build:win && npm run serve-updates",
+    "test": "jest --runInBand"
   },
   "dependencies": {
-    "electron": "^26.0.0"
+    "electron-updater": "^6.6.2",
+    "electron-log": "^5.0.0",
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
+    "jest": "^29.6.1",
+    "electron": "^26.0.0",
     "electron-builder": "^24.6.0"
   },
+  "description": "Gaia Desktop - Electron wrapper for Gaia backend + dashboard",
+  "author": "Gaia Project",
   "build": {
-    "productName": "Gaia One",
-    "appId": "com.gaia.one",
+    "productName": "Gaia 2.0",
+    "appId": "com.gaia.two",
     "mac": {
       "target": ["dmg","zip"],
       "category": "public.app-category.business"
     },
-    "files": ["**/*", "../server/dist/**", "../client/dist/**"]
+    "files": ["**/*", "../server/dist/**", "../client/dist/**"],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "<GITHUB_OWNER>",
+        "repo": "<GITHUB_REPO>"
+      }
+    ]
   }
 }

@@ -11,6 +11,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Campaigns from "./pages/Campaigns";
 import Reports from "./pages/Reports";
 import Welcome from "./pages/Welcome";
+import UpdateNotifier from "./components/UpdateNotifier";
 
 function Router({
   isLoggedIn,
@@ -115,6 +116,9 @@ function App() {
             showWelcome={showWelcome}
             onHideWelcome={hideWelcome}
           />
+
+          {/* Notificador de atualizações (desktop only) */}
+          <UpdateNotifier />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

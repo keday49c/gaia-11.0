@@ -18,6 +18,11 @@ export default function Settings() {
     google_ads_customer_id: '',
     instagram: '',
     whatsapp: '',
+    openai: '',
+    openai_alt: '',
+    gemini: '',
+    gemini_alt: '',
+    meta: '',
   });
 
 
@@ -27,6 +32,10 @@ export default function Settings() {
     instagram: '',
     whatsapp: '',
   });
+
+  // Validação de chaves
+  const [validateResults, setValidateResults] = useState<Record<string, { ok: boolean; message: string }>|null>(null);
+  const [validating, setValidating] = useState(false);
 
   // Carregar dados ao montar
   useEffect(() => {
@@ -49,6 +58,11 @@ export default function Settings() {
           google_ads_customer_id: data.data.chaves.google_ads_customer_id || '',
           instagram: data.data.chaves.instagram || '',
           whatsapp: data.data.chaves.whatsapp || '',
+          openai: data.data.chaves.openai || '',
+          openai_alt: data.data.chaves.openai_alt || '',
+          gemini: data.data.chaves.gemini || '',
+          gemini_alt: data.data.chaves.gemini_alt || '',
+          meta: data.data.chaves.meta || '',
         });
 
         if (data.data.testKeys) {
@@ -81,6 +95,11 @@ export default function Settings() {
           google_ads_customer_id: keys.google_ads_customer_id,
           instagram_token: keys.instagram,
           whatsapp_token: keys.whatsapp,
+          openai_key: keys.openai,
+          openai_key_alt: keys.openai_alt,
+          gemini_key: keys.gemini,
+          gemini_key_alt: keys.gemini_alt,
+          meta_key: keys.meta,
         }),
       });
 
@@ -96,6 +115,45 @@ export default function Settings() {
       alert('❌ Erro ao conectar com o servidor');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleValidateKeys = async () => {
+    try {
+      setValidating(true);
+      setValidateResults(null);
+      const token = getToken();
+      const response = await fetch(`${API_URL}/keys/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          google_ads_key: keys.google_ads,
+          google_ads_customer_id: keys.google_ads_customer_id,
+          instagram_token: keys.instagram,
+          whatsapp_token: keys.whatsapp,
+          openai_key: keys.openai,
+          openai_key_alt: keys.openai_alt,
+          gemini_key: keys.gemini,
+          gemini_key_alt: keys.gemini_alt,
+          meta_key: keys.meta,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setValidateResults(data.data || null);
+      } else {
+        alert('❌ Erro ao validar chaves');
+      }
+    } catch (error) {
+      console.error('Erro ao validar chaves:', error);
+      alert('❌ Erro ao conectar com o servidor');
+    } finally {
+      setValidating(false);
     }
   };
 
@@ -127,6 +185,7 @@ export default function Settings() {
             <TabsTrigger value="keys">Minhas Chaves</TabsTrigger>
             <TabsTrigger value="test">Chaves de Teste</TabsTrigger>
             <TabsTrigger value="docs">Documentação</TabsTrigger>
+            <TabsTrigger value="admin">Admin</TabsTrigger>
           </TabsList>
 
           {/* Tab: Minhas Chaves */}
@@ -234,13 +293,158 @@ export default function Settings() {
               </p>
             </div>
 
-            <Button
-              onClick={handleSaveKeys}
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-semibold"
-            >
-              {loading ? '⏳ Salvando...' : '💾 Salvar Chaves'}
-            </Button>
+            {/* OpenAI */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-900">
+                🤖 OpenAI API Key
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPasswords['openai'] ? 'text' : 'password'}
+                  placeholder="Insira sua chave OpenAI"
+                  value={keys.openai}
+                  onChange={e => setKeys({ ...keys, openai: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => toggleShowPassword('openai')}
+                >
+                  {showPasswords['openai'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Usado para análises com IA (OpenAI)</p>
+            </div>
+
+            {/* OpenAI Alt */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-900">
+                🤖 OpenAI API Key (Alternativa)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPasswords['openai_alt'] ? 'text' : 'password'}
+                  placeholder="Chave OpenAI alternativa (opcional)"
+                  value={keys.openai_alt}
+                  onChange={e => setKeys({ ...keys, openai_alt: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => toggleShowPassword('openai_alt')}
+                >
+                  {showPasswords['openai_alt'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Chave alternativa para fallback de IA</p>
+            </div>
+
+            {/* Gemini */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-900">
+                🧠 Gemini API Key
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPasswords['gemini'] ? 'text' : 'password'}
+                  placeholder="Insira sua chave Gemini / Google Generative"
+                  value={keys.gemini}
+                  onChange={e => setKeys({ ...keys, gemini: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => toggleShowPassword('gemini')}
+                >
+                  {showPasswords['gemini'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Usado para análises com Gemini (Google Generative)</p>
+            </div>
+
+            {/* Gemini Alt */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-900">
+                🧠 Gemini API Key (Alternativa)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPasswords['gemini_alt'] ? 'text' : 'password'}
+                  placeholder="Chave Gemini alternativa (opcional)"
+                  value={keys.gemini_alt}
+                  onChange={e => setKeys({ ...keys, gemini_alt: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => toggleShowPassword('gemini_alt')}
+                >
+                  {showPasswords['gemini_alt'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Chave alternativa para fallback de Gemini</p>
+            </div>
+
+            {/* Meta (Facebook / Instagram / WhatsApp) */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-900">
+                🌐 Meta (Facebook / Instagram / WhatsApp) API Key
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPasswords['meta'] ? 'text' : 'password'}
+                  placeholder="Insira sua chave Meta (Graph API)"
+                  value={keys.meta}
+                  onChange={e => setKeys({ ...keys, meta: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => toggleShowPassword('meta')}
+                >
+                  {showPasswords['meta'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">Usado para autenticar chamadas ao Graph API da Meta</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={handleSaveKeys}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold"
+              >
+                {loading ? '⏳ Salvando...' : '💾 Salvar Chaves'}
+              </Button>
+
+              <Button
+                onClick={handleValidateKeys}
+                disabled={validating}
+                variant="outline"
+                className="w-full py-4 text-lg font-semibold"
+              >
+                {validating ? '⏳ Validando...' : '🔎 Validar Chaves'}
+              </Button>
+            </div>
+
+            {validateResults && (
+              <div className="mt-4 p-4 bg-white border rounded">
+                <h4 className="font-semibold mb-2">Resultados da Validação</h4>
+                <div className="space-y-2 text-sm">
+                  {Object.entries(validateResults).map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between">
+                      <div className="capitalize">{k.replace('_', ' ')}</div>
+                      <div className={`font-mono ${v.ok ? 'text-green-600' : 'text-red-600'}`}>{v.ok ? 'OK' : 'FAIL'} - {v.message}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Tab: Chaves de Teste */}
@@ -383,9 +587,85 @@ export default function Settings() {
               </div>
             </Card>
           </TabsContent>
+
+          <TabsContent value="admin" className="space-y-6">
+            <Card className="p-6 border-2 border-yellow-200 bg-yellow-50">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-yellow-900">Administração</h3>
+                  <p className="text-sm text-yellow-700 mt-1">Ferramentas de teste e operação</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <label className="font-medium">Modo Dry-Run</label>
+                  <input id="dryrun" type="checkbox" className="ml-2" onChange={async (e) => {
+                    const enabled = e.currentTarget.checked;
+                    const token = getToken();
+                    await fetch(`${API_URL}/admin/dry-run`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ enabled }) });
+                    appendLogClient('Modo Dry-Run definido: ' + enabled);
+                    alert(enabled ? 'Dry-Run ativado' : 'Dry-Run desativado');
+                  }} />
+                  <Button variant="outline" onClick={async () => {
+                    const token = getToken();
+                    const res = await fetch(`${API_URL}/admin/dry-run`, { headers: { Authorization: `Bearer ${token}` } });
+                    const data = await res.json();
+                    if (data.success) {
+                      (document.getElementById('dryrun') as HTMLInputElement).checked = !!data.enabled;
+                      alert('Dry-Run: ' + (data.enabled ? 'ATIVADO' : 'DESATIVADO'));
+                    }
+                  }}>Ver Status</Button>
+                </div>
+
+                <div>
+                  <label className="font-medium">Logs de Ações</label>
+                  <div className="mt-2 bg-white p-3 border rounded max-h-48 overflow-auto" id="logs-view">
+                    <div id="logs-placeholder" className="text-sm text-gray-600">Carregue os logs abaixo</div>
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <Button onClick={async () => {
+                      const token = getToken();
+                      const res = await fetch(`${API_URL}/admin/logs`, { headers: { Authorization: `Bearer ${token}` } });
+                      const data = await res.json();
+                      if (data.success) {
+                        const container = document.getElementById('logs-view');
+                        if (container) container.innerHTML = '<pre class="text-xs text-gray-700">' + data.data.join('\n') + '</pre>';
+                      } else alert('Erro ao carregar logs');
+                    }}>Carregar Logs</Button>
+                    <Button onClick={async () => {
+                      const token = getToken();
+                      const res = await fetch(`${API_URL}/admin/logs/export`, { headers: { Authorization: `Bearer ${token}` } });
+                      if (res.ok) {
+                        const txt = await res.text();
+                        const blob = new Blob([txt], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'gaia-actions.log';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } else alert('No logs to export');
+                    }}>Exportar</Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </div>
     </div>
   );
+}
+
+function appendLogClient(msg: string) {
+  try {
+    const token = getToken();
+    navigator.sendBeacon(`${API_URL}/admin/logs`, JSON.stringify({ msg }));
+  } catch (e) {
+    // ignore
+  }
 }
 

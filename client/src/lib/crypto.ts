@@ -26,47 +26,47 @@ export function decryptAES256(encryptedText: string, key: string): string {
  * @param password - Senha a ser salva
  */
 export function saveEncryptedPassword(password: string): void {
-  const encrypted = encryptAES256(password, 'gaia-secret-key');
-  localStorage.setItem('gaia_password', encrypted);
+  // Disabled: storing user passwords client-side is insecure.
+  console.warn('DEPRECATED: saveEncryptedPassword() is disabled for security reasons. Use server-side authentication instead.');
+  // intentionally no-op
 }
 
 /**
  * Recupera a senha criptografada do localStorage
- * @returns Senha descriptografada ou null se não existir
+ * @returns null por motivos de segurança
  */
 export function getEncryptedPassword(): string | null {
-  const encrypted = localStorage.getItem('gaia_password');
-  if (!encrypted) return null;
-  try {
-    return decryptAES256(encrypted, 'gaia-secret-key');
-  } catch {
-    return null;
-  }
+  console.warn('DEPRECATED: getEncryptedPassword() returns null for security reasons.');
+  return null;
 }
 
 /**
  * Verifica se a senha foi configurada
- * @returns true se a senha foi configurada
+ * @returns sempre false por segurança
  */
 export function isPasswordSet(): boolean {
-  return localStorage.getItem('gaia_password') !== null;
+  return false;
 }
 
 /**
  * Valida a senha inserida contra a senha armazenada
  * @param inputPassword - Senha inserida pelo usuário
- * @returns true se a senha está correta
+ * @returns false por segurança
  */
 export function validatePassword(inputPassword: string): boolean {
-  const storedPassword = getEncryptedPassword();
-  if (!storedPassword) return false;
-  return inputPassword === storedPassword;
+  console.warn('DEPRECATED: validatePassword() is disabled. Authenticate via the backend.');
+  return false;
 }
 
 /**
- * Limpa todos os dados do localStorage (modo admin)
+ * Limpa dados locais sensíveis
  */
 export function clearAllData(): void {
-  localStorage.clear();
-}
+  console.warn('clearAllData() called: removing known keys.');
+  try {
+    localStorage.removeItem('gaia_password');
+  } catch {
+    // ignore
+  }
+} 
 

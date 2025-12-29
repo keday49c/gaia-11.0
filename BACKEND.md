@@ -290,6 +290,8 @@ CREATE TABLE jwt_sessions (
 |----------|--------|-----------|
 | `DATABASE_URL` | - | URL de conexão PostgreSQL |
 | `DB_HOST` | postgres | Host do banco |
+
+**Nota (portável):** se o backend não conseguir conectar ao host Postgres configurado e o pacote tiver suporte a SQLite disponível, o servidor tentará automaticamente fazer fallback para um banco SQLite local (modo portátil). Para forçar o modo SQLite manualmente, defina `DATABASE=sqlite`.
 | `DB_PORT` | 5432 | Porta do banco |
 | `DB_USER` | gaia_user | Usuário do banco |
 | `DB_PASSWORD` | gaia_password | Senha do banco |
