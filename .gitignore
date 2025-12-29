@@ -111,3 +111,4 @@ postgres_data/
 # Docker
 .docker/
 docker-compose.override.yml
+desktop/vendor/ffmpeg/
