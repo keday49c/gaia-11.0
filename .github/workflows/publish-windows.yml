@@ -2,14 +2,15 @@ name: Build & Publish Windows Installer
 
 on:
   push:
+    # only run on v3.* tags to avoid re-publishing older major releases
     tags:
-      - 'v*'
+      - 'v3.*'
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag name to build and publish (e.g. v2.0.0)'
+        description: 'Tag name to build and publish (e.g. v3.0.0)'
         required: true
-        default: 'v2.0.0'
+        default: 'v3.0.0'
 
 jobs:
   build-and-publish:
@@ -29,17 +30,27 @@ jobs:
           npm ci
         working-directory: ./desktop
 
-      - name: Build Windows installer (publish if GITHUB_TOKEN present)
-        if: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare FFmpeg
         run: |
-          npm run build:win -- --publish=always
+          npm run prepare-ffmpeg
         working-directory: ./desktop
 
-      - name: Build Windows installer (no publish)
+      - name: Build Gaia 3.0 (publish if GITHUB_TOKEN present)
+        if: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build:gaia3 -- --publish=always
+        working-directory: ./desktop
+
+      - name: Build Gaia 3.0 (no publish)
         if: ${{ !secrets.GITHUB_TOKEN }}
         run: |
-          npm run build:win -- --publish=never
+          npm run build:gaia3 -- --publish=never
         working-directory: ./desktop
+
+      - name: Create portable zip
+        run: |
+          pwsh -NoProfile -Command "Compress-Archive -Path './desktop/dist/win-unpacked/*' -DestinationPath './desktop/dist/gaia-${{ github.ref_name }}-win-unpacked.zip' -Force"
+        working-directory: .
 
       - name: Create Release (if not exists)
         id: create_release
