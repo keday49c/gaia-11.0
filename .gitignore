@@ -112,3 +112,6 @@ postgres_data/
 .docker/
 docker-compose.override.yml
 desktop/vendor/ffmpeg/
+# Portable artifact
+desktop/Gaia-3.0-portable.zip
+
