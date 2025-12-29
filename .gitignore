@@ -114,4 +114,8 @@ docker-compose.override.yml
 desktop/vendor/ffmpeg/
 # Portable artifact
 desktop/Gaia-3.0-portable.zip
+# Local generated installer and exe (do not commit)
+desktop/Gaia 3.0 Setup 3.0.0.exe
+desktop/Gaia 3.0.exe
+
 
