@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install root dependencies
@@ -31,10 +31,15 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run tests (optional)
         run: npm test --if-present
+
+      - name: Build server and client
+        run: |
+          npm run server:build
+          npm run build
 
       - name: Prepare & Build - run make_portable script
         working-directory: ./desktop
