@@ -1,0 +1,63 @@
+name: Windows Portable Build
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-windows-portable:
+    name: Build Portable Gaia on Windows
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: ./desktop
+        run: npm ci
+
+      - name: Run tests (optional)
+        run: npm test --if-present
+
+      - name: Prepare & Build - run make_portable script
+        working-directory: ./desktop
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\make_portable_gaia3.ps1 -Force
+
+      - name: Verify ASAR unpacked server file exists
+        shell: pwsh
+        run: |
+          $path = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar.unpacked\server\dist\index.js'
+          if (Test-Path $path) {
+            Write-Host "OK: Found $path"
+          } else {
+            Write-Host "ERROR: Missing $path"; exit 1
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gaia-portable-artifacts
+          path: |
+            desktop\Gaia-3.0-portable.zip
+            desktop\dist\win-unpacked
+
+      - name: Note about code signing (optional)
+        run: |
+          echo "If you need signed builds, add a certificate as repository secret and incorporate signing steps. See docs/CI-WINDOWS-BUILD.md for instructions."
