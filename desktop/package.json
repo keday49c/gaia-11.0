@@ -1,0 +1,33 @@
+{
+  "name": "gaia-desktop",
+  "version": "3.0.0-ci",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "prepare-ffmpeg": "pwsh -File scripts/download-ffmpeg.ps1 -Force",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "productName": "Gaia 3.0",
+    "appId": "com.gaia.three",
+    "asar": true,
+    "asarUnpack": [
+      "server/dist/**",
+      "**/*.node"
+    ],
+    "files": ["**/*", "../server/dist/**", "../client/dist/**"],
+    "win": {
+      "target": ["nsis"],
+      "extraResources": [
+        {
+          "from": "vendor/ffmpeg/win64",
+          "to": "ffmpeg",
+          "filter": ["**/*"]
+        }
+      ]
+    }
+  }
+}
