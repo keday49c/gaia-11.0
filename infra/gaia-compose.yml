@@ -1,0 +1,156 @@
+networks:
+  gaia-net:
+    driver: bridge
+
+services:
+  gaia-core:
+    build:
+      context: ..
+      dockerfile: gaia-core/Dockerfile
+    image: gaia-core:local
+    container_name: gaia-core
+    restart: unless-stopped
+    ports:
+      - '3000:80'
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=/api
+    volumes:
+      - gaia_core_static:/usr/share/nginx/html:rw
+    depends_on:
+      - gaia-server
+    networks:
+      - gaia-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  gaia-server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    image: gaia-server:local
+    container_name: gaia-server
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE=sqlite
+      - SQLITE_FILE=/data/gaia.sqlite
+      - DB_SSL=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # AI configuration (set on host or in env file used by docker-compose)
+      - AI_PROVIDER=${AI_PROVIDER}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - GOOGLE_ADS_TOKEN=${GOOGLE_ADS_TOKEN}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
+    volumes:
+      - sqlite_data:/data
+    ports:
+      - '3001:3001'
+    depends_on:
+      - redis
+    networks:
+      - gaia-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http=require('http'); http.get('http://127.0.0.1:3001/health', res=>{ process.exit(res.statusCode===200?0:1) }).on('error', ()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  gaia-media:
+    build:
+      context: ../gaia-media
+      dockerfile: Dockerfile
+    image: gaia-media:local
+    container_name: gaia-media
+    restart: unless-stopped
+    networks:
+      - gaia-net
+    volumes:
+      - media_data:/media
+    healthcheck:
+      test: ["CMD-SHELL", "echo ok"]
+      interval: 1m
+      timeout: 10s
+      retries: 1
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: gaia-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=gaia_user
+      - POSTGRES_PASSWORD=gaia_password
+      - POSTGRES_DB=gaia_db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - gaia-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gaia_user -d gaia_db || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gaia-worker:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    image: gaia-worker:local
+    container_name: gaia-worker
+    restart: unless-stopped
+    command: ["npm", "run", "worker"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE=sqlite
+      - SQLITE_FILE=/data/gaia.sqlite
+      - DB_SSL=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # AI configuration (for worker if needed)
+      - AI_PROVIDER=${AI_PROVIDER}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - GOOGLE_ADS_TOKEN=${GOOGLE_ADS_TOKEN}
+      - GOOGLE_ADS_CUSTOMER_ID=${GOOGLE_ADS_CUSTOMER_ID}
+    volumes:
+      - sqlite_data:/data
+    depends_on:
+      - gaia-server
+      - redis
+    networks:
+      - gaia-net
+    healthcheck:
+      test: ["CMD-SHELL", "echo ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: gaia-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - gaia-net
+
+volumes:
+  sqlite_data:
+  redis_data:
+  gaia_core_static:
+  media_data:
+  pg_data:

@@ -1,0 +1,21 @@
+# Systemd unit file for Gaia Docker Compose stack
+# REQUIRES CONFIRMATION: update 'WorkingDirectory' and 'ExecStart' paths to point to your project root
+[Unit]
+Description=Gaia Docker Compose Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/path/to/gaia-11.0  # <<< REPLACE_THIS_PATH with the absolute path to your repo (e.g. /opt/gaia or /srv/gaia)
+# Use `docker compose` (v2). Adjust path to docker if needed.
+	ExecStart=/usr/bin/docker compose -f /path/to/gaia-11.0/docker-compose.yml up -d --build
+	ExecStop=/usr/bin/docker compose -f /path/to/gaia-11.0/docker-compose.yml down
+	TimeoutStartSec=300
+	Restart=always
+	RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

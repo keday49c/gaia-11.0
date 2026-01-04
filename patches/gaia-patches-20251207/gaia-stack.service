@@ -1,0 +1,20 @@
+[Unit]
+Description=Gaia Docker Compose Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# REQUIRES CONFIRMAÇÃO: substituir pelo path absoluto onde está o docker-compose.yml
+WorkingDirectory=/path/to/gaia-11.0
+# Use `docker compose` (v2). Ajuste o caminho para `docker` caso esteja em outro local.
+ExecStart=/usr/bin/docker compose -f /path/to/gaia-11.0/docker-compose.yml up -d --build
+ExecStop=/usr/bin/docker compose -f /path/to/gaia-11.0/docker-compose.yml down
+TimeoutStartSec=300
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

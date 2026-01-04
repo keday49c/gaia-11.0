@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- default tiny transparent favicon to avoid browser requesting /favicon.ico -->
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=" />
+    <script type="module">
+      const appLogo = import.meta.env.VITE_APP_LOGO;
+      if (appLogo) {
+        const l = document.createElement('link');
+        l.rel = 'icon';
+        l.type = 'image/png';
+        l.href = appLogo;
+        document.head.appendChild(l);
+
+        const a = document.createElement('link');
+        a.rel = 'apple-touch-icon';
+        a.href = appLogo;
+        document.head.appendChild(a);
+      }
+    </script>
+    <title>%VITE_APP_TITLE%</title>
+    <!-- Add Google Fonts here, example:
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    -->
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      const analyticsEndpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT;
+      const websiteId = import.meta.env.VITE_ANALYTICS_WEBSITE_ID;
+      if (analyticsEndpoint) {
+        const s = document.createElement('script');
+        s.defer = true;
+        s.src = `${analyticsEndpoint.replace(/\/+$/, '')}/umami`;
+        if (websiteId) s.setAttribute('data-website-id', websiteId);
+        document.head.appendChild(s);
+      }
+    </script>
+  </body>
+
+</html>

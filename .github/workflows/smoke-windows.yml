@@ -1,0 +1,44 @@
+name: Smoke test (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      installer_url:
+        description: 'Optional URL to download the NSIS installer (if not present in repo/artifacts)'
+        required: false
+        default: ''
+
+jobs:
+  smoke-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Powershell script folder
+        run: New-Item -ItemType Directory -Force -Path build\artifacts | Out-Null
+        shell: pwsh
+
+      - name: Download installer (if URL provided)
+        if: ${{ github.event.inputs.installer_url != '' }}
+        shell: pwsh
+        run: |
+          Write-Host "Downloading installer from ${{ github.event.inputs.installer_url }}"
+          Invoke-WebRequest -Uri "${{ github.event.inputs.installer_url }}" -OutFile 'build\artifacts\Gaia One Setup 1.0.0.exe'
+
+      - name: List files for debugging
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Depth 2 | Sort-Object FullName | Format-Table FullName,Length -AutoSize
+
+      - name: Run smoke test (auto-install)
+        shell: pwsh
+        run: |
+          pwsh -File .\scripts\release\smoke_test_windows.ps1 -InstallerPath 'build\artifacts\Gaia One Setup 1.0.0.exe' -AutoInstall -InstallDir "$env:TEMP\gaia_portable" -CleanupInstall
+
+      - name: Upload smoke test logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-logs
+          path: build/artifacts/smoke_test_logs/**
+          retention-days: 3

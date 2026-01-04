@@ -1,0 +1,126 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: gaia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gaia_user
+      POSTGRES_PASSWORD: gaia_password
+      POSTGRES_DB: gaia_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gaia_user -d gaia_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+    networks:
+      - gaia-network
+
+  # Node.js Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gaia-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://gaia_user:gaia_password@postgres:5432/gaia_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: gaia_user
+      DB_PASSWORD: gaia_password
+      DB_NAME: gaia_db
+      # Control SSL usage explicitly in the app: set DB_SSL=true to enable SSL
+      DB_SSL: "false"
+
+      # Server Configuration
+      PORT: "3001"
+      NODE_ENV: production
+
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+
+      # Security (RECOMMEND: move secrets to an external `.env` or Docker secrets)
+      AES_SECRET_KEY: ${AES_SECRET_KEY}
+
+      # CORS Configuration - Alterado para usar o nome do serviço 'frontend'
+      # Adicionada origem alternativa do dev server (http://localhost:3002)
+      CORS_ORIGIN: http://localhost:3000,http://localhost:3002,http://172.18.0.1:3000,http://host.docker.internal:3000,http://frontend
+
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('net').createConnection({port: process.env.PORT || 3001, host: '127.0.0.1'}).on('connect', ()=>process.exit(0)).on('error', ()=>process.exit(1))\" || node -e \"require('net').createConnection({port: process.env.PORT || 3001, host: '::1'}).on('connect', ()=>process.exit(0)).on('error', ()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gaia-network
+    command: npm start
+
+  # React Frontend (NOVO SERVIÇO ADICIONADO )
+  frontend:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: gaia-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /usr/share/nginx/html/index.html ] || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - gaia-network
+
+  # Local worker to perform campaign publishing & automation tasks
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gaia-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://gaia_user:gaia_password@postgres:5432/gaia_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: gaia_user
+      DB_PASSWORD: gaia_password
+      DB_NAME: gaia_db
+      PORT: "3001"
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: http://frontend,http://localhost:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: npm run worker
+    networks:
+      - gaia-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  gaia-network:
+    driver: bridge

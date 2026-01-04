@@ -1,0 +1,46 @@
+name: Build Gaia One (macOS)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, master, 'ci/*' ]
+    tags: [ 'v*' ]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Build desktop (server + client + electron)
+        run: |
+          npm run desktop:build
+
+      - name: Upload built artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaia-one-artifacts
+          path: |
+            dist/**
+            desktop/dist/**
+            desktop/*.dmg
+            desktop/*.zip
+
+      - name: Create GitHub Release on tag (if present)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            dist/**
+            desktop/dist/**
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,86 @@
+name: Build & Publish Windows Installer
+
+on:
+  push:
+    # only run on v3.* tags to avoid re-publishing older major releases
+    tags:
+      - 'v3.*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name to build and publish (e.g. v3.0.0)'
+        required: true
+        default: 'v3.0.0'
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    env:
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: |
+          npm ci
+        working-directory: ./desktop
+
+      - name: Prepare FFmpeg
+        run: |
+          npm run prepare-ffmpeg
+        working-directory: ./desktop
+
+      - name: Build Gaia 3.0 (publish if GITHUB_TOKEN present)
+        if: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build:gaia3 -- --publish=always
+        working-directory: ./desktop
+
+      - name: Build Gaia 3.0 (no publish)
+        if: ${{ !secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build:gaia3 -- --publish=never
+        working-directory: ./desktop
+
+      - name: Create portable zip
+        run: |
+          pwsh -NoProfile -Command "Compress-Archive -Path './desktop/dist/win-unpacked/*' -DestinationPath './desktop/dist/gaia-${{ github.ref_name }}-win-unpacked.zip' -Force"
+        working-directory: .
+
+      - name: Create Release (if not exists)
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Zip dist artifacts
+        run: |
+          powershell -Command "Compress-Archive -Path './desktop/dist/*' -DestinationPath './desktop/dist/gaia-${{ github.ref }}-win.zip' -Force"
+
+      - name: Upload artifacts to release
+        uses: actions/upload-release-asset@v2
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./desktop/dist/gaia-${{ github.ref }}-win.zip
+          asset_name: "gaia-${{ github.ref }}-win.zip"
+          asset_content_type: application/zip
+
+      - name: (Optional) Sign with PFX if provided
+        if: ${{ secrets.WINDOWS_SIGNING_P12 && secrets.WINDOWS_SIGNING_PASSWORD }}
+        run: |
+          echo "Signing would be executed here (use secrets.WINDOWS_SIGNING_P12 & WINDOWS_SIGNING_PASSWORD)."
+        env:
+          WINDOWS_SIGNING_P12: ${{ secrets.WINDOWS_SIGNING_P12 }}
+          WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}
+
+      - name: Publish update metadata
+        if: ${{ always() }}
+        run: |
+          echo "If using electron-builder publish -> set publish configuration in package.json and electron-builder will create release artifacts and latest.yml for auto-updater."

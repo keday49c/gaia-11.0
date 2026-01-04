@@ -1,0 +1,128 @@
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/NotFound";
+import { Route, Switch, useLocation } from "wouter";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { useState, useEffect } from "react";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import AdminPanel from "./pages/AdminPanel";
+import Campaigns from "./pages/Campaigns";
+import Reports from "./pages/Reports";
+import Welcome from "./pages/Welcome";
+import UpdateNotifier from "./components/UpdateNotifier";
+
+function Router({
+  isLoggedIn,
+  isAdmin,
+  onLogin,
+  onLogout,
+  showWelcome,
+  onHideWelcome,
+}: {
+  isLoggedIn: boolean;
+  isAdmin: boolean;
+  onLogin: () => void;
+  onLogout: () => void;
+  onHideWelcome: () => void;
+  showWelcome: boolean;
+}) {
+  const [location] = useLocation();
+
+  // Always allow explicit /welcome route to show the Welcome page
+  if (location === '/welcome') {
+    return <Welcome onLogin={onLogin} onHideWelcome={onHideWelcome} />;
+  }
+  if (showWelcome) {
+    return <Welcome onLogin={onLogin} onHideWelcome={onHideWelcome} />;
+  }
+
+  if (!isLoggedIn) {
+    return <Login onLoginSuccess={onLogin} />;
+  }
+
+  if (isAdmin) {
+    return <AdminPanel onLogout={onLogout} />;
+  }
+
+  return (
+    <Switch>
+      <Route path="/" component={() => <Dashboard onLogout={onLogout} />} />
+      <Route path="/campanhas" component={() => <Campaigns />} />
+      <Route path="/relatorio/:id" component={({ id }: any) => <Reports campaignId={id} />} />
+      <Route path="/404" component={NotFound} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  const hideWelcome = () => {
+    try {
+      localStorage.setItem('gaia_welcome_shown', 'true');
+    } catch (e) {
+      // ignore
+    }
+    setShowWelcome(false);
+  };
+
+  useEffect(() => {
+    const adminMode = localStorage.getItem("gaia_admin") === "true";
+    const token = localStorage.getItem("gaia_token");
+    const welcomeShown = localStorage.getItem("gaia_welcome_shown") === "true";
+
+    if (adminMode) {
+      setIsAdmin(true);
+      setIsLoggedIn(true);
+      setShowWelcome(false);
+    } else if (token) {
+      setIsLoggedIn(true);
+      setShowWelcome(false);
+    } else if (!welcomeShown) {
+      setShowWelcome(true);
+    } else {
+      setShowWelcome(false);
+    }
+  }, []);
+
+  const handleLogin = () => {
+    const adminMode = localStorage.getItem("gaia_admin") === "true";
+    setIsAdmin(adminMode);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("gaia_admin");
+    localStorage.removeItem("gaia_token");
+    setIsAdmin(false);
+    setIsLoggedIn(false);
+  };
+
+  return (
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light" switchable>
+        <TooltipProvider>
+          <Toaster />
+          <Router
+            isLoggedIn={isLoggedIn}
+            isAdmin={isAdmin}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            showWelcome={showWelcome}
+            onHideWelcome={hideWelcome}
+          />
+
+          {/* Notificador de atualizações (desktop only) */}
+          <UpdateNotifier />
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;
