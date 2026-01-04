@@ -19,13 +19,21 @@ Write-Output "Preparando FFmpeg..."
 Write-Output "Gerando build un-packed (electron-builder --dir)"
 Push-Location $repoRoot
 try {
-  npm run pack --silent
+  # Run pack without --silent so electron-builder output is visible in CI logs
+  npm run pack
 } catch {
   Write-Error "Falha ao gerar build (--dir): $_"
   Pop-Location
   exit 2
 }
 Pop-Location
+
+Write-Output "Listando conteúdo de $distDir (pós-pack):"
+if (Test-Path $distDir) {
+  Get-ChildItem -Path $distDir -Recurse -Force | ForEach-Object { Write-Output $_.FullName }
+} else {
+  Write-Output "$distDir não existe"
+}
 
 if (-not (Test-Path $distDir)) {
   Write-Error "Build não encontrado em $distDir"
