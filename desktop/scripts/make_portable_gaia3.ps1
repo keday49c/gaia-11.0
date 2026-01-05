@@ -28,6 +28,15 @@ try {
     Write-Output "package.json não encontrado em $repoRoot — tentarei fallback npx mais abaixo"
   }
 
+  # Check server/dist pre-pack
+  $serverDistPath = Resolve-Path (Join-Path $repoRoot '..\server\dist') -ErrorAction SilentlyContinue
+  if ($serverDistPath) {
+    Write-Output "Pre-pack: found server/dist at $serverDistPath"
+    Get-ChildItem -Path $serverDistPath -Recurse -Force | ForEach-Object { Write-Output $_.FullName }
+  } else {
+    Write-Output "Pre-pack: server/dist not found at $(Join-Path $repoRoot '..\server\dist')"
+  }
+
   # Run pack using explicit prefix so it's independent of the runner working dir
   if (Test-Path (Join-Path $repoRoot 'package.json')) {
     npm --prefix $repoRoot run pack
@@ -48,6 +57,15 @@ if (Test-Path $distDir) {
   Get-ChildItem -Path $distDir -Recurse -Force | ForEach-Object { Write-Output $_.FullName }
 } else {
   Write-Output "$distDir não existe"
+}
+
+# If app.asar exists, list its entries that mention server so we can see whether server files were packaged into asar
+$appAsarPath = Join-Path $distDir 'resources\app.asar'
+if (Test-Path $appAsarPath) {
+  Write-Output "app.asar exists at $appAsarPath — listing entries matching 'server'"
+  npx asar list $appAsarPath | Select-String -Pattern 'server' -SimpleMatch | ForEach-Object { Write-Output $_ }
+} else {
+  Write-Output "No app.asar found at $appAsarPath"
 }
 
 if (-not (Test-Path $distDir)) {
