@@ -33,6 +33,12 @@ try {
   if ($serverDistPath) {
     Write-Output "Pre-pack: found server/dist at $serverDistPath"
     Get-ChildItem -Path $serverDistPath -Recurse -Force | ForEach-Object { Write-Output $_.FullName }
+
+    # Copy server/dist into the desktop folder so electron-builder files globs definitely see it
+    $destServerPath = Join-Path $repoRoot 'server\dist'
+    Write-Output "Copying server/dist into desktop package at $destServerPath"
+    New-Item -Path (Join-Path $repoRoot 'server') -ItemType Directory -Force | Out-Null
+    Copy-Item -Path (Join-Path $serverDistPath '*') -Destination $destServerPath -Recurse -Force
   } else {
     Write-Output "Pre-pack: server/dist not found at $(Join-Path $repoRoot '..\server\dist')"
   }
