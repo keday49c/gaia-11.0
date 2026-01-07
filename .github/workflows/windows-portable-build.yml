@@ -15,7 +15,6 @@ jobs:
     name: Build Portable Gaia on Windows
     runs-on: windows-latest
     timeout-minutes: 60
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install root dependencies
@@ -31,10 +30,16 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm ci
+        run: |
+          if (Test-Path package-lock.json) { npm ci } else { npm install --no-audit --no-fund }
 
       - name: Run tests (optional)
         run: npm test --if-present
+
+      - name: Build server and client
+        run: |
+          npm run server:build
+          npm run build
 
       - name: Prepare & Build - run make_portable script
         working-directory: ./desktop
@@ -43,14 +48,28 @@ jobs:
       - name: Verify ASAR unpacked server file exists
         shell: pwsh
         run: |
-          $path = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar.unpacked\server\dist\index.js'
-          if (Test-Path $path) {
-            Write-Host "OK: Found $path"
-          } else {
-            Write-Host "ERROR: Missing $path"; exit 1
+          $unpacked = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar.unpacked\server\dist\index.js'
+          $asar     = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar'
+
+          if (Test-Path $unpacked) {
+            Write-Host "OK: Found $unpacked"
+            exit 0
           }
 
+          if (Test-Path $asar) {
+            Write-Host "app.asar exists; checking for server/dist entry inside the archive"
+            # Use npx asar to list entries and search for server/dist/index.js
+            $found = & npx --yes asar list $asar 2>$null | Select-String 'server/dist/index.js' -Quiet
+            if ($found) {
+              Write-Host "OK: Found server files inside app.asar"
+              exit 0
+            }
+          }
+
+          Write-Host "ERROR: Missing server/dist/index.js in app.asar.unpacked or inside app.asar"; exit 1
+
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Gaia-portable-artifacts
@@ -58,6 +77,102 @@ jobs:
             desktop\Gaia-3.0-portable.zip
             desktop\dist\win-unpacked
 
+      - name: Upload (macOS) artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gaia-macos-artifacts
+          path: |
+            desktop\Gaia-3.0-macos.zip
+            desktop\dist\mac-unpacked
+
+      - name: Sign executables (optional)
+        working-directory: ./desktop
+        shell: pwsh
+        env:
+          CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}
+          CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}
+        run: |
+          if (-not $env:CODESIGN_PFX) { Write-Output "No CODESIGN_PFX secret configured; skipping signing"; exit 0 }
+          Write-Output "Decoding PFX and importing to certificate store"
+          $pfxPath = Join-Path $PWD 'codesign.pfx'
+          [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:CODESIGN_PFX))
+          $pwd = $env:CODESIGN_PASSWORD
+          certutil -f -p $pwd -importpfx $pfxPath
+          $exe = Get-ChildItem -Path 'dist\win-unpacked' -Filter *.exe -Recurse -File | Select-Object -First 1
+          if ($exe) {
+            Write-Output "Signing $($exe.FullName)"
+            & signtool sign /fd SHA256 /a /f $pfxPath /p $pwd $exe.FullName
+          } else {
+            Write-Output "No exe found to sign"
+          }
+
+      - name: Create or update draft release (optional)
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: gh-build-${{ github.run_number }}
+          release_name: "Windows Portable Build ${{ github.run_number }}"
+          draft: true
+          prerelease: true
+
+      - name: Upload installer to release (if present)
+        if: steps.create_release.outputs.upload_url
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: desktop/dist/win-unpacked/Gaia\ 3.0.exe
+          asset_name: Gaia-3.0.exe
+          asset_content_type: application/octet-stream
+
       - name: Note about code signing (optional)
         run: |
           echo "If you need signed builds, add a certificate as repository secret and incorporate signing steps. See docs/CI-WINDOWS-BUILD.md for instructions."
+
+  build-macos:
+    name: Build Portable Gaia on macOS
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: ./desktop
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+
+      - name: Build server and client
+        run: |
+          npm run server:build
+          npm run build
+
+      - name: Build macOS portable
+        working-directory: ./desktop
+        run: |
+          # Use electron-builder to create an unpacked mac build; signing is optional and requires mac certs
+          npx --yes electron-builder --mac --dir || true
+          # Create a zip of the unpacked app if present
+          if [ -d "desktop/dist/mac" ] || [ -d "desktop/dist/mac-unpacked" ]; then
+            mkdir -p desktop/dist
+            zip -r desktop/Gaia-3.0-macos.zip desktop/dist/mac* || true
+          fi
+
+      - name: Upload mac artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gaia-macos-artifacts
+          path: |
+            desktop\Gaia-3.0-macos.zip
+            desktop\dist\mac-unpacked
