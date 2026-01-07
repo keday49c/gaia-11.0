@@ -73,13 +73,13 @@ jobs:
             desktop\dist\mac-unpacked
 
       - name: Sign executables (optional)
-        if: ${{ secrets.CODESIGN_PFX != '' }}
         working-directory: ./desktop
         shell: pwsh
         env:
           CODESIGN_PFX: ${{ secrets.CODESIGN_PFX }}
           CODESIGN_PASSWORD: ${{ secrets.CODESIGN_PASSWORD }}
         run: |
+          if (-not $env:CODESIGN_PFX) { Write-Output "No CODESIGN_PFX secret configured; skipping signing"; exit 0 }
           Write-Output "Decoding PFX and importing to certificate store"
           $pfxPath = Join-Path $PWD 'codesign.pfx'
           [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:CODESIGN_PFX))
