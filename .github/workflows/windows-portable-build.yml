@@ -31,7 +31,7 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: Run tests (optional)
         run: npm test --if-present

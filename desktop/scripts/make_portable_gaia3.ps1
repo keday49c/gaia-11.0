@@ -102,7 +102,7 @@ Compress-Archive -Path (Join-Path $distDir '*') -DestinationPath $outZip -Force
 # Try copy exe to desktop for convenience
 $exe = Get-ChildItem -Path $distDir -Filter *.exe -File -Recurse | Select-Object -First 1
 if ($exe) {
-  $destExe = Join-Path $repoRoot 'desktop\Gaia 3.0.exe'
+  $destExe = Join-Path $repoRoot 'Gaia 3.0.exe'
   Copy-Item -Path $exe.FullName -Destination $destExe -Force
   Write-Output "Exe copiado para: $destExe"
 } else {
