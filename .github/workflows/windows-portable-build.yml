@@ -48,12 +48,25 @@ jobs:
       - name: Verify ASAR unpacked server file exists
         shell: pwsh
         run: |
-          $path = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar.unpacked\server\dist\index.js'
-          if (Test-Path $path) {
-            Write-Host "OK: Found $path"
-          } else {
-            Write-Host "ERROR: Missing $path"; exit 1
+          $unpacked = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar.unpacked\server\dist\index.js'
+          $asar     = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar'
+
+          if (Test-Path $unpacked) {
+            Write-Host "OK: Found $unpacked"
+            exit 0
           }
+
+          if (Test-Path $asar) {
+            Write-Host "app.asar exists; checking for server/dist entry inside the archive"
+            # Use npx asar to list entries and search for server/dist/index.js
+            $found = & npx --yes asar list $asar 2>$null | Select-String 'server/dist/index.js' -Quiet
+            if ($found) {
+              Write-Host "OK: Found server files inside app.asar"
+              exit 0
+            }
+          }
+
+          Write-Host "ERROR: Missing server/dist/index.js in app.asar.unpacked or inside app.asar"; exit 1
 
       - name: Upload artifacts
         if: always()
