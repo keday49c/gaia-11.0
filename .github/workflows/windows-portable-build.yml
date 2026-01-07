@@ -73,7 +73,7 @@ jobs:
             desktop\dist\mac-unpacked
 
       - name: Sign executables (optional)
-        if: secrets.CODESIGN_PFX
+        if: ${{ secrets.CODESIGN_PFX != '' }}
         working-directory: ./desktop
         shell: pwsh
         env:
