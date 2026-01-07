@@ -30,7 +30,8 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm ci
+        run: |
+          if (Test-Path package-lock.json) { npm ci } else { npm install --no-audit --no-fund }
 
       - name: Run tests (optional)
         run: npm test --if-present
@@ -135,7 +136,8 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: ./desktop
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
 
       - name: Build server and client
         run: |
