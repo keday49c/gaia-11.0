@@ -106,8 +106,9 @@ jobs:
       - name: Create or update draft release (optional)
         id: create_release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: gh-build-${{ github.run_number }}
           release_name: "Windows Portable Build ${{ github.run_number }}"
           draft: true
