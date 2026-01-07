@@ -9,6 +9,7 @@ This document explains how the `windows-portable-build` workflow works and how t
 - runs `./desktop/scripts/make_portable_gaia3.ps1 -Force` to download FFmpeg and produce an un-packed build
 - verifies that `desktop/dist/win-unpacked/resources/app.asar.unpacked/server/dist/index.js` exists
 - uploads `desktop/Gaia-3.0-portable.zip` and `desktop/dist/win-unpacked` as artifacts
+- uses `npm ci` in the `desktop` folder to ensure devDependencies (like Electron) are installed so `electron-builder` can detect the Electron version and produce the executable properly (this fixes a CI failure where the installer was not generated)
 
 ## Why use CI
 
