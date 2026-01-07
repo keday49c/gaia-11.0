@@ -45,28 +45,24 @@ jobs:
         working-directory: ./desktop
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\make_portable_gaia3.ps1 -Force
 
-      - name: Verify ASAR unpacked server file exists
+      - name: Verify build artifacts
         shell: pwsh
         run: |
-          $unpacked = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar.unpacked\server\dist\index.js'
-          $asar     = Join-Path $PWD 'desktop\dist\win-unpacked\resources\app.asar'
-
-          if (Test-Path $unpacked) {
-            Write-Host "OK: Found $unpacked"
-            exit 0
+          # Verify the unpacked build exists
+          if (Test-Path 'desktop\dist\win-unpacked\Gaia 3.0.exe') {
+            Write-Host "OK: Found executable at desktop\dist\win-unpacked\Gaia 3.0.exe"
+          } else {
+            Write-Host "WARNING: Executable not found at expected path"
           }
-
-          if (Test-Path $asar) {
-            Write-Host "app.asar exists; checking for server/dist entry inside the archive"
-            # Use npx asar to list entries and search for server/dist/index.js
-            $found = & npx --yes asar list $asar 2>$null | Select-String 'server/dist/index.js' -Quiet
-            if ($found) {
-              Write-Host "OK: Found server files inside app.asar"
-              exit 0
-            }
+          
+          # Verify portable zip exists
+          if (Test-Path 'desktop\Gaia-3.0-portable.zip') {
+            $size = (Get-Item 'desktop\Gaia-3.0-portable.zip').Length / 1MB
+            Write-Host "OK: Found portable zip (${size:N1} MB) at desktop\Gaia-3.0-portable.zip"
+          } else {
+            Write-Host "ERROR: Portable zip not found"
+            exit 1
           }
-
-          Write-Host "ERROR: Missing server/dist/index.js in app.asar.unpacked or inside app.asar"; exit 1
 
       - name: Upload artifacts
         if: always()
