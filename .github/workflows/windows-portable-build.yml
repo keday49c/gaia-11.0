@@ -15,52 +15,6 @@ jobs:
     name: Build Portable Gaia on Windows
     runs-on: windows-latest
     timeout-minutes: 60
-
-  build-macos:
-    name: Build Portable Gaia on macOS
-    runs-on: macos-latest
-    timeout-minutes: 60
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Install desktop dependencies
-        working-directory: ./desktop
-        run: npm ci
-
-      - name: Build server and client
-        run: |
-          npm run server:build
-          npm run build
-
-      - name: Build macOS portable
-        working-directory: ./desktop
-        run: |
-          # Use electron-builder to create an unpacked mac build; signing is optional and requires mac certs
-          npx --yes electron-builder --mac --dir || true
-          # Create a zip of the unpacked app if present
-          if [ -d "desktop/dist/mac" ] || [ -d "desktop/dist/mac-unpacked" ]; then
-            mkdir -p desktop/dist
-            zip -r desktop/Gaia-3.0-macos.zip desktop/dist/mac* || true
-          fi
-
-      - name: Upload mac artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Gaia-macos-artifacts
-          path: |
-            desktop\Gaia-3.0-macos.zip
-            desktop\dist\mac-unpacked
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -162,3 +116,48 @@ jobs:
       - name: Note about code signing (optional)
         run: |
           echo "If you need signed builds, add a certificate as repository secret and incorporate signing steps. See docs/CI-WINDOWS-BUILD.md for instructions."
+
+  build-macos:
+    name: Build Portable Gaia on macOS
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: ./desktop
+        run: npm ci
+
+      - name: Build server and client
+        run: |
+          npm run server:build
+          npm run build
+
+      - name: Build macOS portable
+        working-directory: ./desktop
+        run: |
+          # Use electron-builder to create an unpacked mac build; signing is optional and requires mac certs
+          npx --yes electron-builder --mac --dir || true
+          # Create a zip of the unpacked app if present
+          if [ -d "desktop/dist/mac" ] || [ -d "desktop/dist/mac-unpacked" ]; then
+            mkdir -p desktop/dist
+            zip -r desktop/Gaia-3.0-macos.zip desktop/dist/mac* || true
+          fi
+
+      - name: Upload mac artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gaia-macos-artifacts
+          path: |
+            desktop\Gaia-3.0-macos.zip
+            desktop\dist\mac-unpacked
